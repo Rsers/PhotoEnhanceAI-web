@@ -1,0 +1,1 @@
+cd /Users/caoxinnan/repo/project2-照片超分辨率/photo-enhancer && npm run dev
