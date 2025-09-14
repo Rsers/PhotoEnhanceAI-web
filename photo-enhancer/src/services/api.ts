@@ -2,10 +2,10 @@ import axios from 'axios'
 
 // 创建 axios 实例
 const api = axios.create({
-    baseURL: import.meta.env.DEV ? 'http://localhost:8000' : '/api',
-    timeout: 60000, // 1分钟超时
+    baseURL: 'http://101.33.75.206:8000',
+    timeout: 300000, // 5分钟超时 (图片处理可能需要更长时间)
     headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'multipart/form-data'
     }
 })
 
@@ -30,22 +30,44 @@ api.interceptors.response.use(
     }
 )
 
-// 图片增强 API
+// 图片增强 API - 连接真实后端
 export const enhanceImageAPI = async (imageDataUrl: string) => {
+    console.log('开始调用API...')
+
     // 将 base64 转换为 blob
     const response = await fetch(imageDataUrl)
     const blob = await response.blob()
+    console.log('图片转换完成，大小:', blob.size)
 
     // 创建 FormData
     const formData = new FormData()
-    formData.append('image', blob, 'image.jpg')
+    formData.append('file', blob, 'image.jpg')
+    formData.append('tile_size', '400')
+    formData.append('quality_level', 'high')
 
-    // 发送请求
-    return api.post('/enhance', formData, {
+    console.log('发送请求到:', 'http://101.33.75.206:8000/api/v1/enhance')
+
+    // 发送请求到真实的API接口
+    const apiResponse = await api.post('/api/v1/enhance', formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
+        },
+        timeout: 300000, // 5分钟超时
+        onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`上传进度: ${percentCompleted}%`);
         }
     })
+
+    console.log('API响应:', apiResponse.data)
+
+    // 检查是否是异步任务响应
+    if (apiResponse.data.task_id && apiResponse.data.status) {
+        console.log('检测到异步任务，开始轮询结果...')
+        return await pollTaskResult(apiResponse.data.task_id)
+    }
+
+    return apiResponse
 }
 
 // 模拟 API（用于开发测试）
@@ -59,6 +81,59 @@ export const mockEnhanceImageAPI = async (imageDataUrl: string): Promise<{ data:
             enhanced_image: imageDataUrl
         }
     }
+}
+
+// 轮询任务结果
+const pollTaskResult = async (taskId: string, maxAttempts = 60, interval = 5000): Promise<any> => {
+    console.log(`开始轮询任务 ${taskId}...`)
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            console.log(`第 ${attempt} 次查询任务状态...`)
+
+            // 查询任务状态 - 根据示例代码使用正确的路径
+            const response = await api.get(`/api/v1/status/${taskId}`)
+            console.log('任务状态响应:', response.data)
+
+            // 显示进度信息
+            if (response.data.progress) {
+                console.log(`状态: ${response.data.status} (${(response.data.progress * 100).toFixed(1)}%)`)
+            }
+
+            if (response.data.status === 'completed') {
+                console.log('任务完成！')
+                // 获取下载链接
+                const downloadUrl = `/api/v1/download/${taskId}`
+                console.log('下载链接:', downloadUrl)
+
+                // 返回包含下载链接的响应
+                return {
+                    data: {
+                        download_url: `${api.defaults.baseURL}${downloadUrl}`,
+                        enhanced_image: `${api.defaults.baseURL}${downloadUrl}`
+                    }
+                }
+            } else if (response.data.status === 'failed') {
+                throw new Error(`任务失败: ${response.data.error || '未知错误'}`)
+            } else if (response.data.status === 'processing' || response.data.status === 'queued') {
+                console.log(`任务状态: ${response.data.status}，继续等待...`)
+                // 等待指定时间后继续轮询
+                await new Promise(resolve => setTimeout(resolve, interval))
+            } else {
+                console.log(`未知任务状态: ${response.data.status}`)
+                await new Promise(resolve => setTimeout(resolve, interval))
+            }
+
+        } catch (error) {
+            console.error(`轮询任务状态时出错:`, error)
+            if (attempt === maxAttempts) {
+                throw new Error(`任务轮询失败: ${error.message}`)
+            }
+            await new Promise(resolve => setTimeout(resolve, interval))
+        }
+    }
+
+    throw new Error('任务处理超时，请稍后查看结果')
 }
 
 export default api

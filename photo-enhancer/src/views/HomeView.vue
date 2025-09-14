@@ -9,7 +9,7 @@
           </path>
         </svg>
       </div>
-      <h1 class="main-title">AI 照片超分辨率增强</h1>
+      <h1 class="main-title">PhotoEnhanceAI 照片超分辨率增强</h1>
       <p class="subtitle">
         使用先进的人工智能技术，将您的低分辨率图片转换为超高清图片，提升图像质量和细节表现
       </p>
@@ -93,7 +93,7 @@
               <div v-if="processing" style="text-align: center;">
                 <div class="loading-spinner"></div>
                 <div class="loading-title">AI 处理中</div>
-                <div class="loading-subtitle">正在使用深度学习算法增强图像...</div>
+                <div class="loading-subtitle">{{ processingStatus }}</div>
               </div>
               <!-- 等待处理 -->
               <div v-else-if="!enhancedImage" style="text-align: center; color: #6b7280;">
@@ -122,7 +122,7 @@
       <div v-if="processing" class="loading-section">
         <div class="loading-spinner"></div>
         <div class="loading-title">AI 正在处理您的图片</div>
-        <div class="loading-subtitle">使用深度学习算法增强图像细节，请稍候...</div>
+        <div class="loading-subtitle">{{ processingStatus }}</div>
       </div>
     </div>
   </div>
@@ -130,12 +130,13 @@
 
 <script setup lang="ts">
   import { ref } from 'vue'
-  import { mockEnhanceImageAPI } from '@/services/api'
+  import { enhanceImageAPI } from '@/services/api'
 
   const originalImage = ref < string > ('')
   const enhancedImage = ref < string > ('')
   const processing = ref(false)
   const dragOver = ref(false)
+  const processingStatus = ref < string > ('准备中...')
 
   const handleImageUpload = (imageDataUrl: string) => {
     originalImage.value = imageDataUrl
@@ -183,14 +184,103 @@
     if (!originalImage.value) return
 
     processing.value = true
+    processingStatus.value = '正在上传图片...'
+
     try {
-      const response = await mockEnhanceImageAPI(originalImage.value)
-      enhancedImage.value = response.data.enhanced_image
+      console.log('开始处理图片...')
+
+      // 设置状态更新监听
+      const originalLog = console.log
+      console.log = (...args) => {
+        originalLog(...args)
+        const message = args.join(' ')
+        if (message.includes('上传进度:')) {
+          processingStatus.value = `上传中: ${message.split('上传进度: ')[1]}`
+        } else if (message.includes('检测到异步任务')) {
+          processingStatus.value = '任务已提交，正在排队处理...'
+        } else if (message.includes('开始轮询任务')) {
+          processingStatus.value = '任务处理中，正在查询进度...'
+        } else if (message.includes('任务状态: queued')) {
+          processingStatus.value = '任务排队中，请耐心等待...'
+        } else if (message.includes('任务状态: processing')) {
+          processingStatus.value = 'AI正在增强图像，请稍候...'
+        } else if (message.includes('第') && message.includes('次查询')) {
+          const attempt = message.match(/第 (\d+) 次/)?.[1]
+          processingStatus.value = `正在查询处理进度 (${attempt}/60)...`
+        } else if (message.includes('状态:') && message.includes('%')) {
+          // 提取进度信息
+          const progressMatch = message.match(/\((\d+\.\d+)%\)/)
+          if (progressMatch) {
+            processingStatus.value = `AI处理中: ${progressMatch[1]}% 完成`
+          }
+        } else if (message.includes('任务完成')) {
+          processingStatus.value = '处理完成，正在获取结果...'
+        }
+      }
+
+      // 调用真实的后端API
+      const response = await enhanceImageAPI(originalImage.value)
+
+      // 恢复原始console.log
+      console.log = originalLog
+
+      console.log('API响应数据:', response.data)
+
+      // 处理各种可能的API响应格式
+      let resultImage = null
+
+      if (response.data) {
+        // 尝试不同的字段名
+        if (response.data.enhanced_image) {
+          resultImage = response.data.enhanced_image
+        } else if (response.data.result) {
+          resultImage = response.data.result
+        } else if (response.data.image) {
+          resultImage = response.data.image
+        } else if (response.data.output) {
+          resultImage = response.data.output
+        } else if (response.data.url) {
+          resultImage = response.data.url
+        } else if (typeof response.data === 'string') {
+          resultImage = response.data
+        } else {
+          // 打印完整响应以便调试
+          console.log('完整API响应:', response)
+          throw new Error(`API返回格式不正确。响应数据: ${JSON.stringify(response.data)}`)
+        }
+      } else {
+        throw new Error('API返回空数据')
+      }
+
+      if (resultImage) {
+        // 如果返回的不是完整的data URL，需要添加前缀
+        if (!resultImage.startsWith('data:')) {
+          if (resultImage.startsWith('http')) {
+            // 如果是URL，直接使用
+            enhancedImage.value = resultImage
+          } else {
+            // 如果是base64字符串，添加前缀
+            enhancedImage.value = `data:image/jpeg;base64,${resultImage}`
+          }
+        } else {
+          enhancedImage.value = resultImage
+        }
+        console.log('图片增强成功')
+      } else {
+        throw new Error('未能从API响应中提取图片数据')
+      }
+
     } catch (error) {
       console.error('图片增强失败:', error)
-      alert('图片处理失败，请重试')
+      if (error.response) {
+        console.error('错误响应:', error.response.data)
+        alert(`图片处理失败：${error.response.data?.message || error.response.data?.detail || '服务器错误'}`)
+      } else {
+        alert(`图片处理失败：${error.message || '请重试'}`)
+      }
     } finally {
       processing.value = false
+      processingStatus.value = '准备中...'
     }
   }
 
