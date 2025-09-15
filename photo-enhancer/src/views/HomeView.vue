@@ -9,7 +9,9 @@
           </path>
         </svg>
       </div>
-      <h1 class="main-title">PhotoEnhanceAI 照片超分辨率增强</h1>
+      <h1 class="main-title">GFPGAN</h1>
+      <h1 class="main-title">照片超分辨率增强</h1>
+      <h1 class="main-title">人像美化</h1>
       <p class="subtitle">
         使用先进的人工智能技术，将您的低分辨率图片转换为超高清图片，提升图像质量和细节表现
       </p>
