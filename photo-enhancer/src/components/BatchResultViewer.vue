@@ -250,6 +250,46 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
 
+    // 从浏览器缓存获取图片数据（缓存优化）
+    const getImageFromCache = async (imageUrl: string): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+
+            img.onload = () => {
+                const canvas = document.createElement('canvas')
+                const ctx = canvas.getContext('2d')
+
+                canvas.width = img.width
+                canvas.height = img.height
+
+                ctx!.drawImage(img, 0, 0)
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob)
+                    } else {
+                        reject(new Error('Canvas to blob failed'))
+                    }
+                }, 'image/jpeg', 0.9)
+            }
+
+            img.onerror = () => reject(new Error('Image load failed'))
+            img.src = imageUrl  // 这里会使用浏览器缓存！
+        })
+    }
+
+    // Base64转Blob（缓存优化）
+    const base64ToBlob = (base64Data: string): Blob => {
+        const base64String = base64Data.split(',')[1]
+        const binaryString = atob(base64String)
+        const bytes = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i)
+        }
+        return new Blob([bytes], { type: 'image/jpeg' })
+    }
+
     // 下载单张图片
     const downloadSingleImage = (imageUrl: string, index: number) => {
         const link = document.createElement('a')
@@ -260,11 +300,11 @@
         document.body.removeChild(link)
     }
 
-    // 下载所有完成的图片（优化版：批量并发下载）
+    // 下载所有完成的图片（缓存优化版：从浏览器缓存下载）
     const downloadAllCompleted = async () => {
         const completedResults = props.results.filter(r => r.status === 'completed' && r.enhancedImage)
 
-        console.log(`开始批量下载 ${completedResults.length} 张图片...`)
+        console.log(`开始批量下载 ${completedResults.length} 张图片（从浏览器缓存）...`)
 
         // 批量下载配置
         const BATCH_SIZE = getDownloadBatchSize() // 从配置文件获取批次大小
@@ -286,22 +326,18 @@
             // 并发下载当前批次的所有图片
             const downloadPromises = batch.map(async (result, index) => {
                 const globalIndex = batchIndex * BATCH_SIZE + index
-                
+
                 try {
-                    // 如果enhancedImage是URL，先下载到本地缓存
                     let imageBlob: Blob
-                    
+
                     if (result.enhancedImage!.startsWith('http')) {
-                        // 从服务器URL下载图片到本地
-                        const response = await fetch(result.enhancedImage!)
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`)
-                        }
-                        imageBlob = await response.blob()
+                        // 从浏览器缓存获取图片数据（避免二次服务器请求）
+                        console.log(`从缓存获取图片 ${globalIndex + 1}...`)
+                        imageBlob = await getImageFromCache(result.enhancedImage!)
                     } else {
-                        // 如果是base64，直接转换
-                        const response = await fetch(result.enhancedImage!)
-                        imageBlob = await response.blob()
+                        // Base64直接转换，不需要fetch
+                        console.log(`解析Base64图片 ${globalIndex + 1}...`)
+                        imageBlob = base64ToBlob(result.enhancedImage!)
                     }
 
                     // 创建本地下载链接
@@ -310,22 +346,22 @@
                     link.href = url
                     link.download = `enhanced-image-${globalIndex + 1}.jpg`
                     document.body.appendChild(link)
-                    
+
                     // 延迟点击，避免浏览器阻止
                     await new Promise(resolve => setTimeout(resolve, index * DOWNLOAD_DELAY))
-                    
+
                     link.click()
                     document.body.removeChild(link)
-                    
+
                     // 清理URL对象，释放内存
                     URL.revokeObjectURL(url)
-                    
-                    console.log(`图片 ${globalIndex + 1} 下载完成`)
+
+                    console.log(`图片 ${globalIndex + 1} 下载完成（从缓存）`)
                     return { success: true, index: globalIndex }
-                    
+
                 } catch (error) {
                     console.error(`下载图片 ${globalIndex + 1} 失败:`, error)
-                    // 如果下载失败，回退到原来的方式
+                    // 如果缓存下载失败，回退到原来的方式
                     const link = document.createElement('a')
                     link.href = result.enhancedImage!
                     link.download = `enhanced-image-${globalIndex + 1}.jpg`
@@ -340,7 +376,7 @@
             const batchResults = await Promise.allSettled(downloadPromises)
             const successCount = batchResults.filter(r => r.status === 'fulfilled' && r.value.success).length
             const failCount = batchResults.length - successCount
-            
+
             console.log(`第 ${batchIndex + 1} 批下载完成: 成功 ${successCount} 张，失败 ${failCount} 张`)
 
             // 批次间延迟，避免浏览器压力过大
@@ -348,8 +384,8 @@
                 await new Promise(resolve => setTimeout(resolve, getBatchDelay()))
             }
         }
-        
-        console.log(`批量下载完成，共下载 ${completedResults.length} 张图片`)
+
+        console.log(`批量下载完成，共下载 ${completedResults.length} 张图片（从浏览器缓存）`)
     }
 
     // 查看全尺寸图片

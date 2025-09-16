@@ -219,7 +219,7 @@
 
 <script setup lang="ts">
     import { ref, computed } from 'vue'
-    import { getConcurrency } from '@/config/batchProcessing'
+    import { getConcurrency, getPreviewBatchSize } from '@/config/batchProcessing'
     import { enhanceImageAPI } from '@/services/api'
 
     interface ImageItem {
@@ -279,12 +279,64 @@
         }
     }
 
-    // 处理多个文件
-    const handleFiles = (files: File[]) => {
-        const validFiles = files.filter(file => {
+    // 分批编码Base64预览（Base64编码优化）
+    const loadPreviewsInBatches = async (files: File[]) => {
+        const PREVIEW_BATCH_SIZE = getPreviewBatchSize() // 从配置文件获取批次大小
+
+        console.log(`开始分批编码 ${files.length} 张图片的预览，每批 ${PREVIEW_BATCH_SIZE} 张...`)
+
+        for (let i = 0; i < files.length; i += PREVIEW_BATCH_SIZE) {
+            const batch = files.slice(i, i + PREVIEW_BATCH_SIZE)
+            console.log(`编码第 ${Math.floor(i / PREVIEW_BATCH_SIZE) + 1} 批，共 ${batch.length} 张图片...`)
+
+            // 编码当前批次
+            await encodeBatch(batch)
+
+            // 不添加延迟（因为服务器处理时间已经够长）
+        }
+
+        console.log(`所有图片预览编码完成，共 ${files.length} 张`)
+    }
+
+    // 编码单个批次
+    const encodeBatch = async (files: File[]) => {
+        const promises = files.map(file => {
+            return new Promise < { file: File, preview: string } > ((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = (e) => {
+                    const preview = e.target?.result as string
+                    resolve({ file, preview: preview || '' })
+                }
+                reader.onerror = () => reject(new Error(`Failed to read ${file.name}`))
+                reader.readAsDataURL(file)
+            })
+        })
+
+        const results = await Promise.all(promises)
+
+        // 添加到列表
+        results.forEach(({ file, preview }) => {
+            selectedImages.value.push({
+                file,
+                preview,
+                status: 'pending'
+            })
+        })
+    }
+
+    // 处理文件选择
+    const handleFiles = (files: FileList | null) => {
+        if (!files) return
+
+        const fileArray = Array.from(files)
+        console.log(`选择了 ${fileArray.length} 个文件`)
+
+        // 过滤有效文件
+        const validFiles = fileArray.filter(file => {
             // 检查文件类型
-            if (!file.type.startsWith('image/jpeg')) {
-                alert(`文件 ${file.name} 不是 JPG 格式，已跳过`)
+            const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
+            if (!['.jpg', '.jpeg'].includes(extension)) {
+                alert(`文件 ${file.name} 不是支持的格式，已跳过`)
                 return false
             }
 
@@ -297,19 +349,8 @@
             return true
         })
 
-        // 为每个有效文件创建预览
-        validFiles.forEach(file => {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                const preview = e.target?.result as string
-                selectedImages.value.push({
-                    file,
-                    preview,
-                    status: 'pending'
-                })
-            }
-            reader.readAsDataURL(file)
-        })
+        // 分批编码预览（Base64编码优化）
+        loadPreviewsInBatches(validFiles)
     }
 
     // 移除单张图片
