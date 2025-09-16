@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // 创建 axios 实例
 const api = axios.create({
-    baseURL: 'http://101.33.75.206:8000',
+    baseURL: 'http://101.33.77.243:8000',
     timeout: 300000, // 5分钟超时 (图片处理可能需要更长时间)
     headers: {
         'Content-Type': 'multipart/form-data'
