@@ -355,7 +355,73 @@ Network -> CSS -> 查看状态码
 - **解决**：将并发数改为1，实现顺序处理
 - **效果**：服务器压力显著降低，处理稳定性提升
 
+#### 配置化重构
+- **问题**：硬编码的并发数分散在多个文件中
+- **影响**：维护困难，容易出错，配置不统一
+- **解决**：创建统一配置文件，消除硬编码
+- **效果**：配置集中管理，提高可维护性和可配置性
+
+### 配置文件说明
+
+#### 批量处理配置
+**文件位置**：`src/config/batchProcessing.ts`
+
+```typescript
+/**
+ * 批量处理配置
+ */
+export const BATCH_PROCESSING_CONFIG = {
+    // 并发处理数量
+    CONCURRENCY: 1,
+    
+    // 处理超时时间（毫秒）
+    TIMEOUT: 300000, // 5分钟
+    
+    // 重试次数
+    MAX_RETRIES: 3,
+    
+    // 重试延迟（毫秒）
+    RETRY_DELAY: 1000,
+    
+    // 支持的图片格式
+    SUPPORTED_FORMATS: ['.jpg', '.jpeg'],
+    
+    // 最大文件大小（字节）
+    MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+    
+    // 最大批量数量
+    MAX_BATCH_SIZE: 20
+} as const
+```
+
+#### 配置项说明
+- **CONCURRENCY**: 并发处理数量，控制同时处理的图片数量
+- **TIMEOUT**: 处理超时时间，防止处理时间过长
+- **MAX_RETRIES**: 最大重试次数，处理失败时的重试次数
+- **RETRY_DELAY**: 重试延迟时间，重试之间的等待时间
+- **SUPPORTED_FORMATS**: 支持的图片格式列表
+- **MAX_FILE_SIZE**: 最大文件大小限制
+- **MAX_BATCH_SIZE**: 最大批量处理数量
+
+#### 使用方法
+```typescript
+// 导入配置
+import { getConcurrency } from '@/config/batchProcessing'
+
+// 使用配置
+const concurrency = getConcurrency()
+```
+
+#### 配置优势
+- **集中管理**：所有配置在一个文件中
+- **类型安全**：使用TypeScript确保类型安全
+- **易于维护**：修改配置只需要改一个地方
+- **避免遗漏**：不会忘记同步修改
+- **支持扩展**：可以轻松添加新的配置项
+
 ## 许可证
+
+MIT License
 
 MIT License
 

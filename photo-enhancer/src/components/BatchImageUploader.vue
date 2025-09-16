@@ -219,6 +219,7 @@
 
 <script setup lang="ts">
     import { ref, computed } from 'vue'
+    import { getConcurrency } from '@/config/batchProcessing'
     import { enhanceImageAPI } from '@/services/api'
 
     interface ImageItem {
@@ -347,7 +348,7 @@
         })
 
         // 并发处理所有图片（限制并发数）
-        const concurrency = 3 // 同时处理3张图片
+        const concurrency = getConcurrency() // 从配置文件获取并发数
         const chunks = []
         for (let i = 0; i < selectedImages.value.length; i += concurrency) {
             chunks.push(selectedImages.value.slice(i, i + concurrency))
