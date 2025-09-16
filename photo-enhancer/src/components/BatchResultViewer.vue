@@ -237,7 +237,7 @@
             'completed': '已完成',
             'error': '失败'
         }
-        return statusMap[status] || status
+        return statusMap[status as keyof typeof statusMap] || status
     }
 
     // 格式化文件大小
@@ -259,20 +259,65 @@
         document.body.removeChild(link)
     }
 
-    // 下载所有完成的图片
-    const downloadAllCompleted = () => {
+    // 下载所有完成的图片（使用本地缓存，避免重复从服务器下载）
+    const downloadAllCompleted = async () => {
         const completedResults = props.results.filter(r => r.status === 'completed' && r.enhancedImage)
 
-        completedResults.forEach((result, index) => {
-            setTimeout(() => {
+        console.log(`开始批量下载 ${completedResults.length} 张图片...`)
+
+        for (let index = 0; index < completedResults.length; index++) {
+            const result = completedResults[index]
+            
+            try {
+                // 如果enhancedImage是URL，先下载到本地缓存
+                let imageBlob: Blob
+                
+                if (result.enhancedImage!.startsWith('http')) {
+                    // 从服务器URL下载图片到本地
+                    console.log(`正在下载图片 ${index + 1}/${completedResults.length}...`)
+                    const response = await fetch(result.enhancedImage!)
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`)
+                    }
+                    imageBlob = await response.blob()
+                } else {
+                    // 如果是base64，直接转换
+                    const response = await fetch(result.enhancedImage!)
+                    imageBlob = await response.blob()
+                }
+
+                // 创建本地下载链接
+                const url = URL.createObjectURL(imageBlob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = `enhanced-image-${index + 1}.jpg`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                
+                // 清理URL对象，释放内存
+                URL.revokeObjectURL(url)
+                
+                console.log(`图片 ${index + 1} 下载完成`)
+                
+                // 延迟下载，避免浏览器阻止
+                if (index < completedResults.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500))
+                }
+                
+            } catch (error) {
+                console.error(`下载图片 ${index + 1} 失败:`, error)
+                // 如果下载失败，回退到原来的方式
                 const link = document.createElement('a')
                 link.href = result.enhancedImage!
                 link.download = `enhanced-image-${index + 1}.jpg`
                 document.body.appendChild(link)
                 link.click()
                 document.body.removeChild(link)
-            }, index * 500) // 每500ms下载一张，避免浏览器阻止
-        })
+            }
+        }
+        
+        console.log(`批量下载完成，共下载 ${completedResults.length} 张图片`)
     }
 
     // 查看全尺寸图片

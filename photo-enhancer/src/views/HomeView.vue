@@ -329,7 +329,7 @@
         throw new Error('未能从API响应中提取图片数据')
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('图片增强失败:', error)
       if (error.response) {
         console.error('错误响应:', error.response.data)
