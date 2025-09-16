@@ -88,6 +88,245 @@ npm run preview
 - Safari
 - Edge
 
+## 🚨 重要：前端样式修改不生效问题解决方案
+
+### 问题描述
+在开发过程中，经常遇到修改CSS样式后页面没有变化的问题，这是一个常见的前端开发痛点。
+
+### 常见原因和解决方案
+
+#### 1. CSS优先级问题
+**问题**：Tailwind CSS 与自定义CSS冲突
+```css
+/* 错误示例 - Tailwind类可能被覆盖 */
+<div class="bg-white text-black custom-style">
+```
+**解决方案**：
+- 使用 `!important` 强制应用样式
+- 调整CSS选择器优先级
+- 使用Vue的scoped样式
+
+#### 2. 样式缓存问题
+**问题**：浏览器缓存导致样式不更新
+**解决方案**：
+```bash
+# 清除浏览器缓存
+Ctrl + F5 (Windows) / Cmd + Shift + R (Mac)
+
+# 或者硬刷新
+Ctrl + Shift + R (Windows) / Cmd + Shift + R (Mac)
+```
+
+#### 3. 热重载失效
+**问题**：Vite开发服务器热重载不工作
+**解决方案**：
+```bash
+# 重启开发服务器
+npm run dev
+
+# 或者强制重启
+pkill -f "npm run dev"
+npm run dev
+```
+
+#### 4. CSS作用域问题
+**问题**：样式没有正确应用到目标元素
+**解决方案**：
+```vue
+<!-- 使用scoped样式 -->
+<style scoped>
+.custom-style {
+  color: red;
+}
+</style>
+
+<!-- 或者使用深度选择器 -->
+<style scoped>
+:deep(.nested-element) {
+  color: blue;
+}
+</style>
+```
+
+#### 5. 样式文件导入问题
+**问题**：CSS文件没有正确导入
+**解决方案**：
+```vue
+<!-- 在组件中导入样式 -->
+<style scoped>
+@import '@/assets/custom.css';
+</style>
+```
+
+### 调试技巧
+
+#### 1. 使用浏览器开发者工具
+- 按F12打开开发者工具
+- 检查Elements面板中的样式
+- 查看Computed面板确认最终样式
+- 使用Styles面板调试样式
+
+#### 2. 检查样式加载
+```bash
+# 检查网络面板确认CSS文件加载
+Network -> CSS -> 查看状态码
+```
+
+#### 3. 使用Vue DevTools
+- 安装Vue DevTools浏览器扩展
+- 检查组件的样式绑定
+- 查看响应式数据变化
+
+### 最佳实践
+
+#### 1. 样式组织
+```vue
+<template>
+  <div class="component-wrapper">
+    <!-- 使用语义化的类名 -->
+    <div class="header-section">
+      <h1 class="main-title">标题</h1>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* 使用BEM命名规范 */
+.component-wrapper {
+  /* 组件根样式 */
+}
+
+.header-section {
+  /* 区块样式 */
+}
+
+.main-title {
+  /* 元素样式 */
+}
+</style>
+```
+
+#### 2. 样式优先级管理
+```css
+/* 1. 基础样式 */
+.base-style {
+  color: black;
+}
+
+/* 2. 组件样式 */
+.component-style {
+  color: blue;
+}
+
+/* 3. 状态样式 */
+.component-style.active {
+  color: red;
+}
+
+/* 4. 重要样式 */
+.component-style.important {
+  color: green !important;
+}
+```
+
+#### 3. 响应式设计
+```css
+/* 移动端优先 */
+.responsive-element {
+  font-size: 14px;
+}
+
+/* 平板端 */
+@media (min-width: 768px) {
+  .responsive-element {
+    font-size: 16px;
+  }
+}
+
+/* 桌面端 */
+@media (min-width: 1024px) {
+  .responsive-element {
+    font-size: 18px;
+  }
+}
+```
+
+### 常见错误示例
+
+#### ❌ 错误做法
+```vue
+<!-- 1. 样式冲突 -->
+<div class="bg-white text-black" style="color: red !important;">
+
+<!-- 2. 作用域混乱 -->
+<style>
+.global-style { color: blue; }
+</style>
+
+<!-- 3. 缓存问题 -->
+<!-- 修改样式后不刷新浏览器 -->
+```
+
+#### ✅ 正确做法
+```vue
+<!-- 1. 清晰的样式层次 -->
+<div class="component-wrapper">
+  <div class="content-section">
+    <h1 class="title">标题</h1>
+  </div>
+</div>
+
+<!-- 2. 使用scoped样式 -->
+<style scoped>
+.component-wrapper {
+  background: white;
+}
+
+.content-section {
+  padding: 20px;
+}
+
+.title {
+  color: black;
+  font-size: 24px;
+}
+</style>
+```
+
+### 故障排除清单
+
+- [ ] 检查浏览器缓存（硬刷新）
+- [ ] 重启开发服务器
+- [ ] 检查CSS文件是否正确导入
+- [ ] 使用浏览器开发者工具检查样式
+- [ ] 确认CSS选择器优先级
+- [ ] 检查Vue组件的作用域
+- [ ] 验证样式语法是否正确
+- [ ] 检查是否有JavaScript错误影响渲染
+
+### 项目中的实际案例
+
+#### 案例1：批量处理组件样式问题
+**问题**：批量处理组件的样式与单张处理不一致
+**解决方案**：
+- 移除所有Tailwind CSS类
+- 使用自定义CSS类
+- 导入统一的样式文件
+
+#### 案例2：模式切换组件颜色对比度问题
+**问题**：未选中状态的文字几乎看不见
+**解决方案**：
+- 改用深色文字 + 浅色背景
+- 增加背景透明度
+- 添加边框增强可见性
+
+#### 案例3：标签重叠问题
+**问题**：批量处理结果中的标签重叠
+**解决方案**：
+- 调整标签位置（left/right）
+- 使用z-index控制层级
+- 优化标签尺寸和间距
+
 ## 许可证
 
 MIT License
