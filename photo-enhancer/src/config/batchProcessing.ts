@@ -21,7 +21,12 @@ export const BATCH_PROCESSING_CONFIG = {
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
     
     // 最大批量数量
-    MAX_BATCH_SIZE: 20
+    MAX_BATCH_SIZE: 20,
+    
+    // 批量下载配置
+    DOWNLOAD_BATCH_SIZE: 10, // 每批下载的图片数量
+    DOWNLOAD_DELAY: 100, // 每张图片下载间隔（毫秒）
+    BATCH_DELAY: 1000, // 批次间延迟（毫秒）
 } as const
 
 /**
@@ -50,4 +55,25 @@ export const getMaxRetries = (): number => {
  */
 export const getRetryDelay = (): number => {
     return BATCH_PROCESSING_CONFIG.RETRY_DELAY
+}
+
+/**
+ * 获取下载批次大小
+ */
+export const getDownloadBatchSize = (): number => {
+    return BATCH_PROCESSING_CONFIG.DOWNLOAD_BATCH_SIZE
+}
+
+/**
+ * 获取下载延迟
+ */
+export const getDownloadDelay = (): number => {
+    return BATCH_PROCESSING_CONFIG.DOWNLOAD_DELAY
+}
+
+/**
+ * 获取批次延迟
+ */
+export const getBatchDelay = (): number => {
+    return BATCH_PROCESSING_CONFIG.BATCH_DELAY
 }

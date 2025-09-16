@@ -190,6 +190,7 @@
 
 <script setup lang="ts">
     import { ref, computed } from 'vue'
+    import { getDownloadBatchSize, getDownloadDelay, getBatchDelay } from '@/config/batchProcessing'
 
     interface ImageResult {
         file: File
@@ -259,61 +260,92 @@
         document.body.removeChild(link)
     }
 
-    // 下载所有完成的图片（使用本地缓存，避免重复从服务器下载）
+    // 下载所有完成的图片（优化版：批量并发下载）
     const downloadAllCompleted = async () => {
         const completedResults = props.results.filter(r => r.status === 'completed' && r.enhancedImage)
 
         console.log(`开始批量下载 ${completedResults.length} 张图片...`)
 
-        for (let index = 0; index < completedResults.length; index++) {
-            const result = completedResults[index]
-            
-            try {
-                // 如果enhancedImage是URL，先下载到本地缓存
-                let imageBlob: Blob
-                
-                if (result.enhancedImage!.startsWith('http')) {
-                    // 从服务器URL下载图片到本地
-                    console.log(`正在下载图片 ${index + 1}/${completedResults.length}...`)
-                    const response = await fetch(result.enhancedImage!)
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`)
-                    }
-                    imageBlob = await response.blob()
-                } else {
-                    // 如果是base64，直接转换
-                    const response = await fetch(result.enhancedImage!)
-                    imageBlob = await response.blob()
-                }
+        // 批量下载配置
+        const BATCH_SIZE = getDownloadBatchSize() // 从配置文件获取批次大小
+        const DOWNLOAD_DELAY = getDownloadDelay() // 从配置文件获取下载延迟
 
-                // 创建本地下载链接
-                const url = URL.createObjectURL(imageBlob)
-                const link = document.createElement('a')
-                link.href = url
-                link.download = `enhanced-image-${index + 1}.jpg`
-                document.body.appendChild(link)
-                link.click()
-                document.body.removeChild(link)
+        // 将图片分批处理
+        const batches = []
+        for (let i = 0; i < completedResults.length; i += BATCH_SIZE) {
+            batches.push(completedResults.slice(i, i + BATCH_SIZE))
+        }
+
+        console.log(`分 ${batches.length} 批下载，每批 ${BATCH_SIZE} 张图片`)
+
+        // 顺序处理每批
+        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+            const batch = batches[batchIndex]
+            console.log(`开始下载第 ${batchIndex + 1}/${batches.length} 批...`)
+
+            // 并发下载当前批次的所有图片
+            const downloadPromises = batch.map(async (result, index) => {
+                const globalIndex = batchIndex * BATCH_SIZE + index
                 
-                // 清理URL对象，释放内存
-                URL.revokeObjectURL(url)
-                
-                console.log(`图片 ${index + 1} 下载完成`)
-                
-                // 延迟下载，避免浏览器阻止
-                if (index < completedResults.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500))
+                try {
+                    // 如果enhancedImage是URL，先下载到本地缓存
+                    let imageBlob: Blob
+                    
+                    if (result.enhancedImage!.startsWith('http')) {
+                        // 从服务器URL下载图片到本地
+                        const response = await fetch(result.enhancedImage!)
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`)
+                        }
+                        imageBlob = await response.blob()
+                    } else {
+                        // 如果是base64，直接转换
+                        const response = await fetch(result.enhancedImage!)
+                        imageBlob = await response.blob()
+                    }
+
+                    // 创建本地下载链接
+                    const url = URL.createObjectURL(imageBlob)
+                    const link = document.createElement('a')
+                    link.href = url
+                    link.download = `enhanced-image-${globalIndex + 1}.jpg`
+                    document.body.appendChild(link)
+                    
+                    // 延迟点击，避免浏览器阻止
+                    await new Promise(resolve => setTimeout(resolve, index * DOWNLOAD_DELAY))
+                    
+                    link.click()
+                    document.body.removeChild(link)
+                    
+                    // 清理URL对象，释放内存
+                    URL.revokeObjectURL(url)
+                    
+                    console.log(`图片 ${globalIndex + 1} 下载完成`)
+                    return { success: true, index: globalIndex }
+                    
+                } catch (error) {
+                    console.error(`下载图片 ${globalIndex + 1} 失败:`, error)
+                    // 如果下载失败，回退到原来的方式
+                    const link = document.createElement('a')
+                    link.href = result.enhancedImage!
+                    link.download = `enhanced-image-${globalIndex + 1}.jpg`
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                    return { success: false, index: globalIndex, error }
                 }
-                
-            } catch (error) {
-                console.error(`下载图片 ${index + 1} 失败:`, error)
-                // 如果下载失败，回退到原来的方式
-                const link = document.createElement('a')
-                link.href = result.enhancedImage!
-                link.download = `enhanced-image-${index + 1}.jpg`
-                document.body.appendChild(link)
-                link.click()
-                document.body.removeChild(link)
+            })
+
+            // 等待当前批次完成
+            const batchResults = await Promise.allSettled(downloadPromises)
+            const successCount = batchResults.filter(r => r.status === 'fulfilled' && r.value.success).length
+            const failCount = batchResults.length - successCount
+            
+            console.log(`第 ${batchIndex + 1} 批下载完成: 成功 ${successCount} 张，失败 ${failCount} 张`)
+
+            // 批次间延迟，避免浏览器压力过大
+            if (batchIndex < batches.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, getBatchDelay()))
             }
         }
         
