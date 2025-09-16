@@ -319,12 +319,8 @@
             const batch = batches[batchIndex]
             console.log(`📥 开始下载第 ${batchIndex + 1}/${batches.length} 批...`)
 
-            // 顺序下载当前批次的所有图片（避免浏览器阻止多个同时下载）
-            let batchSuccessCount = 0
-            let batchFailCount = 0
-
-            for (let index = 0; index < batch.length; index++) {
-                const result = batch[index]
+            // 并发下载当前批次的所有图片
+            const downloadPromises = batch.map(async (result, index) => {
                 const globalIndex = batchIndex * BATCH_SIZE + index
 
                 try {
@@ -347,7 +343,9 @@
                     link.download = `enhanced-image-${globalIndex + 1}.jpg`
                     document.body.appendChild(link)
 
-                    // 立即点击下载
+                    // 延迟点击，避免浏览器阻止
+                    await new Promise(resolve => setTimeout(resolve, index * DOWNLOAD_DELAY))
+
                     link.click()
                     document.body.removeChild(link)
 
@@ -355,13 +353,7 @@
                     URL.revokeObjectURL(url)
 
                     console.log(`✅ 图片 ${globalIndex + 1} 下载完成`)
-                    batchSuccessCount++
-
-                    // 每张图片之间延迟，避免浏览器阻止
-                    if (index < batch.length - 1) {
-                        console.log(`⏳ 等待 ${DOWNLOAD_DELAY}ms 后下载下一张...`)
-                        await new Promise(resolve => setTimeout(resolve, DOWNLOAD_DELAY))
-                    }
+                    return { success: true, index: globalIndex }
 
                 } catch (error) {
                     console.error(`❌ 下载图片 ${globalIndex + 1} 失败:`, error)
@@ -374,24 +366,23 @@
                         link.click()
                         document.body.removeChild(link)
                         console.log(`⚠️ 图片 ${globalIndex + 1} 使用回退方式下载完成`)
-                        batchSuccessCount++
-
-                        // 回退下载后也要延迟
-                        if (index < batch.length - 1) {
-                            console.log(`⏳ 等待 ${DOWNLOAD_DELAY}ms 后下载下一张...`)
-                            await new Promise(resolve => setTimeout(resolve, DOWNLOAD_DELAY))
-                        }
+                        return { success: true, index: globalIndex, fallback: true }
                     } catch (fallbackError) {
                         console.error(`❌ 回退下载也失败:`, fallbackError)
-                        batchFailCount++
+                        return { success: false, index: globalIndex, error: fallbackError }
                     }
                 }
-            }
+            })
 
-            totalSuccess += batchSuccessCount
-            totalFailed += batchFailCount
+            // 等待当前批次完成
+            const batchResults = await Promise.allSettled(downloadPromises)
+            const successCount = batchResults.filter(r => r.status === 'fulfilled' && r.value.success).length
+            const failCount = batchResults.length - successCount
 
-            console.log(`📊 第 ${batchIndex + 1} 批下载完成: 成功 ${batchSuccessCount} 张，失败 ${batchFailCount} 张`)
+            totalSuccess += successCount
+            totalFailed += failCount
+
+            console.log(`📊 第 ${batchIndex + 1} 批下载完成: 成功 ${successCount} 张，失败 ${failCount} 张`)
 
             // 批次间延迟，避免浏览器压力过大
             if (batchIndex < batches.length - 1) {

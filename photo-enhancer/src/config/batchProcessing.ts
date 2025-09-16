@@ -24,9 +24,9 @@ export const BATCH_PROCESSING_CONFIG = {
     MAX_BATCH_SIZE: 20,
 
     // 批量下载配置
-    DOWNLOAD_BATCH_SIZE: 10, // 每批下载的图片数量
-    DOWNLOAD_DELAY: 100, // 每张图片下载间隔（毫秒）
-    BATCH_DELAY: 1000, // 批次间延迟（毫秒）
+    DOWNLOAD_BATCH_SIZE: 3, // 每批下载的图片数量（减少到3张避免浏览器阻止）
+    DOWNLOAD_DELAY: 1000, // 每张图片下载间隔（毫秒）（增加到1秒）
+    BATCH_DELAY: 2000, // 批次间延迟（毫秒）（增加到2秒）
 
     // Base64编码配置
     PREVIEW_BATCH_SIZE: 2, // 预览分批大小（每批2张图片）
