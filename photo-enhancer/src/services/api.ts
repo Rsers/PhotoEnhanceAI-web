@@ -54,7 +54,7 @@ export const enhanceImageAPI = async (imageDataUrl: string) => {
         },
         timeout: 300000, // 5分钟超时
         onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
             console.log(`上传进度: ${percentCompleted}%`);
         }
     })
@@ -124,7 +124,7 @@ const pollTaskResult = async (taskId: string, maxAttempts = 60, interval = 5000)
                 await new Promise(resolve => setTimeout(resolve, interval))
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(`轮询任务状态时出错:`, error)
             if (attempt === maxAttempts) {
                 throw new Error(`任务轮询失败: ${error.message}`)
@@ -134,6 +134,105 @@ const pollTaskResult = async (taskId: string, maxAttempts = 60, interval = 5000)
     }
 
     throw new Error('任务处理超时，请稍后查看结果')
+}
+
+// 批量图片增强 API
+export const batchEnhanceImagesAPI = async (imageDataUrls: string[]) => {
+    console.log(`开始批量处理 ${imageDataUrls.length} 张图片...`)
+
+    const results = []
+
+    // 并发处理所有图片（限制并发数避免服务器压力）
+    const concurrency = 3
+    const chunks = []
+    for (let i = 0; i < imageDataUrls.length; i += concurrency) {
+        chunks.push(imageDataUrls.slice(i, i + concurrency))
+    }
+
+    for (const chunk of chunks) {
+        const chunkResults = await Promise.allSettled(
+            chunk.map(async (imageDataUrl, index) => {
+                try {
+                    console.log(`处理第 ${index + 1} 张图片...`)
+                    const result = await enhanceImageAPI(imageDataUrl)
+                    return {
+                        success: true,
+                        data: result.data,
+                        index: index
+                    }
+                } catch (error: any) {
+                    console.error(`第 ${index + 1} 张图片处理失败:`, error)
+                    return {
+                        success: false,
+                        error: error.message || '处理失败',
+                        index: index
+                    }
+                }
+            })
+        )
+        results.push(...chunkResults)
+    }
+
+    console.log('批量处理完成，结果:', results)
+    return results
+}
+
+// 批量轮询任务结果
+export const batchPollTaskResults = async (taskIds: string[], maxAttempts = 60, interval = 5000) => {
+    console.log(`开始批量轮询 ${taskIds.length} 个任务...`)
+
+    const results = []
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        console.log(`第 ${attempt} 次批量查询任务状态...`)
+
+        const promises = taskIds.map(async (taskId, index) => {
+            try {
+                const response = await api.get(`/api/v1/status/${taskId}`)
+                return {
+                    taskId,
+                    index,
+                    status: response.data.status,
+                    progress: response.data.progress,
+                    error: response.data.error,
+                    data: response.data
+                }
+            } catch (error: any) {
+                return {
+                    taskId,
+                    index,
+                    status: 'error',
+                    error: error.message,
+                    data: null
+                }
+            }
+        })
+
+        const responses = await Promise.all(promises)
+
+        // 检查是否所有任务都完成
+        const allCompleted = responses.every(r =>
+            r.status === 'completed' || r.status === 'failed' || r.status === 'error'
+        )
+
+        if (allCompleted) {
+            console.log('所有任务已完成')
+            return responses.map(r => ({
+                taskId: r.taskId,
+                index: r.index,
+                status: r.status,
+                downloadUrl: r.status === 'completed'
+                    ? `${api.defaults.baseURL}/api/v1/download/${r.taskId}`
+                    : null,
+                error: r.error
+            }))
+        }
+
+        // 等待指定时间后继续轮询
+        await new Promise(resolve => setTimeout(resolve, interval))
+    }
+
+    throw new Error('批量任务处理超时')
 }
 
 export default api
