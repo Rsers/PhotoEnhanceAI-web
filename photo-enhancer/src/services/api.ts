@@ -143,7 +143,7 @@ export const batchEnhanceImagesAPI = async (imageDataUrls: string[]) => {
     const results = []
 
     // 并发处理所有图片（限制并发数避免服务器压力）
-    const concurrency = 3
+    const concurrency = 1
     const chunks = []
     for (let i = 0; i < imageDataUrls.length; i += concurrency) {
         chunks.push(imageDataUrls.slice(i, i + concurrency))
