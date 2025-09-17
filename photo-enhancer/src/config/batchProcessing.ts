@@ -15,7 +15,7 @@ export const BATCH_PROCESSING_CONFIG = {
     RETRY_DELAY: 1000,
 
     // 支持的图片格式
-    SUPPORTED_FORMATS: ['.jpg', '.jpeg'],
+    SUPPORTED_FORMATS: ['.jpg', '.jpeg', '.avif'],
 
     // 最大文件大小（字节）
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB

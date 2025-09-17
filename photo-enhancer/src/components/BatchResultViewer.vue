@@ -226,44 +226,75 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
 
-    // 从浏览器缓存获取图片数据（修复版：移除crossOrigin避免跨域问题）
+    // 从浏览器缓存获取图片数据（真正从DOM元素获取，避免网络请求）
     const getImageFromCache = async (imageUrl: string): Promise<Blob> => {
         return new Promise((resolve, reject) => {
-            const img = new Image()
-            // 移除 crossOrigin 设置，避免跨域问题
+            try {
+                // 查找页面中已经渲染的图片元素
+                const existingImg = document.querySelector(`img[src="${imageUrl}"]`) as HTMLImageElement
 
-            img.onload = () => {
-                try {
+                if (existingImg && existingImg.complete) {
+                    // 如果找到了已渲染的图片元素，直接使用它（不会发起网络请求）
+                    console.log(`✅ 找到DOM中的图片元素，直接使用: ${imageUrl}`)
+
                     const canvas = document.createElement('canvas')
                     const ctx = canvas.getContext('2d')
 
-                    canvas.width = img.width
-                    canvas.height = img.height
+                    canvas.width = existingImg.naturalWidth || existingImg.width
+                    canvas.height = existingImg.naturalHeight || existingImg.height
 
-                    ctx!.drawImage(img, 0, 0)
+                    ctx!.drawImage(existingImg, 0, 0)
 
                     canvas.toBlob((blob) => {
                         if (blob) {
-                            console.log(`✅ 成功从缓存获取图片: ${imageUrl}`)
+                            console.log(`✅ 成功从DOM缓存获取图片: ${imageUrl}`)
                             resolve(blob)
                         } else {
                             console.error('❌ Canvas to blob failed')
                             reject(new Error('Canvas to blob failed'))
                         }
                     }, 'image/jpeg', 0.9)
-                } catch (error) {
-                    console.error('❌ Canvas 操作失败:', error)
-                    reject(error)
+                } else {
+                    // 如果没找到已渲染的图片，回退到网络请求方式
+                    console.log(`⚠️ 未找到已渲染的图片元素，使用网络请求: ${imageUrl}`)
+                    const img = new Image()
+
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas')
+                            const ctx = canvas.getContext('2d')
+
+                            canvas.width = img.width
+                            canvas.height = img.height
+
+                            ctx!.drawImage(img, 0, 0)
+
+                            canvas.toBlob((blob) => {
+                                if (blob) {
+                                    console.log(`✅ 成功从网络获取图片: ${imageUrl}`)
+                                    resolve(blob)
+                                } else {
+                                    console.error('❌ Canvas to blob failed')
+                                    reject(new Error('Canvas to blob failed'))
+                                }
+                            }, 'image/jpeg', 0.9)
+                        } catch (error) {
+                            console.error('❌ Canvas 操作失败:', error)
+                            reject(error)
+                        }
+                    }
+
+                    img.onerror = (error) => {
+                        console.error('❌ 图片加载失败:', imageUrl, error)
+                        reject(new Error(`Image load failed: ${imageUrl}`))
+                    }
+
+                    img.src = imageUrl
                 }
+            } catch (error) {
+                console.error('❌ 获取图片数据失败:', error)
+                reject(error)
             }
-
-            img.onerror = (error) => {
-                console.error('❌ 图片加载失败:', imageUrl, error)
-                reject(new Error(`Image load failed: ${imageUrl}`))
-            }
-
-            console.log(`🔄 尝试从缓存加载图片: ${imageUrl}`)
-            img.src = imageUrl  // 这里会使用浏览器缓存！
         })
     }
 

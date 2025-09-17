@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { getConcurrency } from '@/config/batchProcessing'
+import { API_CONFIG, getApiUrl, getStatusUrl, getDownloadUrl } from '@/config/api'
 
 // 创建 axios 实例
 const api = axios.create({
-    baseURL: 'http://101.33.77.243:8000',
-    timeout: 300000, // 5分钟超时 (图片处理可能需要更长时间)
+    baseURL: API_CONFIG.BASE_URL,
+    timeout: API_CONFIG.TIMEOUT, // 5分钟超时 (图片处理可能需要更长时间)
     headers: {
         'Content-Type': 'multipart/form-data'
     }
@@ -46,14 +47,14 @@ export const enhanceImageAPI = async (imageDataUrl: string) => {
     formData.append('tile_size', '400')
     formData.append('quality_level', 'high')
 
-    console.log('发送请求到:', 'http://101.33.75.206:8000/api/v1/enhance')
+    console.log('发送请求到:', getApiUrl(API_CONFIG.ENDPOINTS.ENHANCE))
 
     // 发送请求到真实的API接口
-    const apiResponse = await api.post('/api/v1/enhance', formData, {
+    const apiResponse = await api.post(API_CONFIG.ENDPOINTS.ENHANCE, formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         },
-        timeout: 300000, // 5分钟超时
+        timeout: API_CONFIG.TIMEOUT, // 5分钟超时
         onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
             console.log(`上传进度: ${percentCompleted}%`);
@@ -85,7 +86,7 @@ export const mockEnhanceImageAPI = async (imageDataUrl: string): Promise<{ data:
 }
 
 // 轮询任务结果
-const pollTaskResult = async (taskId: string, maxAttempts = 60, interval = 5000): Promise<any> => {
+const pollTaskResult = async (taskId: string, maxAttempts = API_CONFIG.POLLING.MAX_ATTEMPTS, interval = API_CONFIG.POLLING.INTERVAL): Promise<any> => {
     console.log(`开始轮询任务 ${taskId}...`)
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -93,7 +94,7 @@ const pollTaskResult = async (taskId: string, maxAttempts = 60, interval = 5000)
             console.log(`第 ${attempt} 次查询任务状态...`)
 
             // 查询任务状态 - 根据示例代码使用正确的路径
-            const response = await api.get(`/api/v1/status/${taskId}`)
+            const response = await api.get(getStatusUrl(taskId))
             console.log('任务状态响应:', response.data)
 
             // 显示进度信息
@@ -104,14 +105,14 @@ const pollTaskResult = async (taskId: string, maxAttempts = 60, interval = 5000)
             if (response.data.status === 'completed') {
                 console.log('任务完成！')
                 // 获取下载链接
-                const downloadUrl = `/api/v1/download/${taskId}`
+                const downloadUrl = getDownloadUrl(taskId)
                 console.log('下载链接:', downloadUrl)
 
                 // 返回包含下载链接的响应
                 return {
                     data: {
-                        download_url: `${api.defaults.baseURL}${downloadUrl}`,
-                        enhanced_image: `${api.defaults.baseURL}${downloadUrl}`
+                        download_url: downloadUrl,
+                        enhanced_image: downloadUrl
                     }
                 }
             } else if (response.data.status === 'failed') {
@@ -179,7 +180,7 @@ export const batchEnhanceImagesAPI = async (imageDataUrls: string[]) => {
 }
 
 // 批量轮询任务结果
-export const batchPollTaskResults = async (taskIds: string[], maxAttempts = 60, interval = 5000) => {
+export const batchPollTaskResults = async (taskIds: string[], maxAttempts = API_CONFIG.POLLING.MAX_ATTEMPTS, interval = API_CONFIG.POLLING.INTERVAL) => {
     console.log(`开始批量轮询 ${taskIds.length} 个任务...`)
 
     const results = []
@@ -189,7 +190,7 @@ export const batchPollTaskResults = async (taskIds: string[], maxAttempts = 60, 
 
         const promises = taskIds.map(async (taskId, index) => {
             try {
-                const response = await api.get(`/api/v1/status/${taskId}`)
+                const response = await api.get(getStatusUrl(taskId))
                 return {
                     taskId,
                     index,
@@ -223,7 +224,7 @@ export const batchPollTaskResults = async (taskIds: string[], maxAttempts = 60, 
                 index: r.index,
                 status: r.status,
                 downloadUrl: r.status === 'completed'
-                    ? `${api.defaults.baseURL}/api/v1/download/${r.taskId}`
+                    ? getDownloadUrl(r.taskId)
                     : null,
                 error: r.error
             }))

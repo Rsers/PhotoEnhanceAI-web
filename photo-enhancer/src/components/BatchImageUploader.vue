@@ -32,7 +32,7 @@
                 <!-- 上传按钮 -->
                 <label class="batch-upload-button" :class="{ 'loading': loading }">
                     <span>{{ loading ? '处理中...' : '选择多张图片' }}</span>
-                    <input type="file" class="hidden" accept=".jpg,.jpeg" multiple @change="handleFileSelect"
+                    <input type="file" class="hidden" accept=".jpg,.jpeg,.avif" multiple @change="handleFileSelect"
                         :disabled="loading" />
                 </label>
 
@@ -204,6 +204,7 @@
                 <span>支持格式：</span>
                 <span class="format-tag">JPG</span>
                 <span class="format-tag">JPEG</span>
+                <span class="format-tag avif">AVIF</span>
             </div>
         </div>
     </div>
@@ -213,6 +214,8 @@
     import { ref, computed } from 'vue'
     import { getConcurrency, getPreviewBatchSize } from '@/config/batchProcessing'
     import { enhanceImageAPI } from '@/services/api'
+    import { convertAvifToJpg, isAvifFile, isSupportedImageFormat } from '@/utils/imageConverter'
+    import { downloadImageAsBase64 } from '@/utils/imageDownloader'
 
     interface ImageItem {
         file: File
@@ -293,14 +296,33 @@
     // 编码单个批次
     const encodeBatch = async (files: File[]) => {
         const promises = files.map(file => {
-            return new Promise < { file: File, preview: string } > ((resolve, reject) => {
-                const reader = new FileReader()
-                reader.onload = (e) => {
-                    const preview = e.target?.result as string
-                    resolve({ file, preview: preview || '' })
+            return new Promise < { file: File, preview: string } > (async (resolve, reject) => {
+                try {
+                    // 如果是AVIF格式，需要先转换
+                    if (isAvifFile(file)) {
+                        console.log(`🔄 检测到AVIF格式，开始转换: ${file.name}`)
+                        const result = await convertAvifToJpg(file)
+
+                        if (result.success && result.dataUrl) {
+                            console.log(`✅ AVIF转JPG成功: ${file.name}`)
+                            resolve({ file, preview: result.dataUrl })
+                        } else {
+                            console.error(`❌ AVIF转换失败: ${file.name}`, result.error)
+                            reject(new Error(`AVIF转换失败: ${result.error}`))
+                        }
+                    } else {
+                        // JPG/JPEG格式直接读取
+                        const reader = new FileReader()
+                        reader.onload = (e) => {
+                            const preview = e.target?.result as string
+                            resolve({ file, preview: preview || '' })
+                        }
+                        reader.onerror = () => reject(new Error(`Failed to read ${file.name}`))
+                        reader.readAsDataURL(file)
+                    }
+                } catch (error) {
+                    reject(error)
                 }
-                reader.onerror = () => reject(new Error(`Failed to read ${file.name}`))
-                reader.readAsDataURL(file)
             })
         })
 
@@ -326,9 +348,8 @@
         // 过滤有效文件
         const validFiles = fileArray.filter(file => {
             // 检查文件类型
-            const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
-            if (!['.jpg', '.jpeg'].includes(extension)) {
-                alert(`文件 ${file.name} 不是支持的格式，已跳过`)
+            if (!isSupportedImageFormat(file)) {
+                alert(`文件 ${file.name} 不是支持的格式（支持JPG、JPEG、AVIF），已跳过`)
                 return false
             }
 
@@ -428,7 +449,17 @@
                 // 如果返回的不是完整的data URL，需要添加前缀
                 if (!resultImage.startsWith('data:')) {
                     if (resultImage.startsWith('http')) {
-                        imageItem.enhancedImage = resultImage
+                        // 如果是HTTP URL，立即下载并转换为Base64存储（避免后续下载时再次请求服务器）
+                        console.log(`🔄 检测到服务器URL，立即下载并转换为Base64: ${resultImage}`)
+                        try {
+                            const base64Data = await downloadImageAsBase64(resultImage)
+                            imageItem.enhancedImage = base64Data
+                            console.log(`✅ 服务器图片已转换为Base64存储`)
+                        } catch (downloadError) {
+                            console.error('❌ 下载服务器图片失败:', downloadError)
+                            // 如果下载失败，仍然存储URL作为回退
+                            imageItem.enhancedImage = resultImage
+                        }
                     } else {
                         imageItem.enhancedImage = `data:image/jpeg;base64,${resultImage}`
                     }
@@ -1062,6 +1093,11 @@
         border-radius: 0.375rem;
         font-size: 0.75rem;
         font-weight: 600;
+    }
+
+    .format-tag.avif {
+        background: #dbeafe;
+        color: #1e40af;
     }
 
     /* 响应式设计 */
