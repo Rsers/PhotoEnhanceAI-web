@@ -157,7 +157,8 @@
       <div v-else-if="currentMode === 'batch'" class="batch-mode-container">
         <!-- 批量上传组件 -->
         <div class="batch-upload-section">
-          <BatchImageUploader :loading="batchProcessing" @batch-complete="handleBatchComplete" />
+          <BatchImageUploader :loading="batchProcessing" @batch-complete="handleBatchComplete"
+            @image-processed="handleImageProcessed" />
         </div>
 
         <!-- 批量结果展示 -->
@@ -403,6 +404,21 @@
   const handleBatchComplete = (results: any[]) => {
     batchResults.value = results
     batchProcessing.value = false
+  }
+
+  // 处理单张图片完成
+  const handleImageProcessed = (imageItem: any, index: number) => {
+    console.log(`📸 收到图片 ${index + 1} 处理完成通知:`, imageItem.status)
+
+    // 更新对应位置的图片
+    if (batchResults.value[index]) {
+      batchResults.value[index] = imageItem
+    } else {
+      // 如果还没有这个索引，添加到数组
+      batchResults.value[index] = imageItem
+    }
+
+    console.log(`✅ 图片 ${index + 1} 已更新到结果视图`)
   }
 
   const resetBatchMode = () => {

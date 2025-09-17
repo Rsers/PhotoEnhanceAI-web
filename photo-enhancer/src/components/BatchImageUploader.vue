@@ -232,6 +232,7 @@
 
     interface Emits {
         (e: 'batchComplete', results: ImageItem[]): void
+        (e: 'imageProcessed', imageItem: ImageItem, index: number): void
     }
 
     defineProps < Props > ()
@@ -410,7 +411,10 @@
         }
 
         for (const chunk of chunks) {
-            await Promise.all(chunk.map(processImage))
+            await Promise.all(chunk.map((imageItem, chunkIndex) => {
+                const globalIndex = chunks.indexOf(chunk) * concurrency + chunkIndex
+                return processImage(imageItem, globalIndex)
+            }))
         }
 
         processing.value = false
@@ -418,7 +422,7 @@
     }
 
     // 处理单张图片
-    const processImage = async (imageItem: ImageItem) => {
+    const processImage = async (imageItem: ImageItem, index: number) => {
         try {
             imageItem.status = 'processing'
             processingCount.value++
@@ -474,6 +478,11 @@
                     imageItem.enhancedImageSize = calculateBase64ImageSize(resultImage)
                 }
                 imageItem.status = 'completed'
+
+                // 立即emit更新，让结果视图实时显示
+                emit('imageProcessed', imageItem, index)
+                console.log(`✅ 图片 ${index + 1} 处理完成，已通知结果视图`)
+
             } else {
                 throw new Error('未能从API响应中提取图片数据')
             }
@@ -482,6 +491,13 @@
             console.error('图片处理失败:', error)
             imageItem.status = 'error'
             imageItem.error = error.message || '处理失败'
+
+            // 即使失败也要emit更新
+            emit('imageProcessed', imageItem, index)
+            console.log(`❌ 图片 ${index + 1} 处理失败，已通知结果视图`)
+
+        } finally {
+            processingCount.value--
         }
     }
 
