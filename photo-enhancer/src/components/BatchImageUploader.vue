@@ -216,6 +216,7 @@
     import { enhanceImageAPI } from '@/services/api'
     import { convertAvifToJpg, isAvifFile, isSupportedImageFormat } from '@/utils/imageConverter'
     import { downloadImageAsBase64 } from '@/utils/imageDownloader'
+    import { calculateBase64ImageSize } from '@/utils/imageSize'
 
     interface ImageItem {
         file: File
@@ -454,7 +455,9 @@
                         try {
                             const base64Data = await downloadImageAsBase64(resultImage)
                             imageItem.enhancedImage = base64Data
-                            console.log(`✅ 服务器图片已转换为Base64存储`)
+                            // 计算处理后图片大小
+                            imageItem.enhancedImageSize = calculateBase64ImageSize(base64Data)
+                            console.log(`✅ 服务器图片已转换为Base64存储，大小: ${imageItem.enhancedImageSize} bytes`)
                         } catch (downloadError) {
                             console.error('❌ 下载服务器图片失败:', downloadError)
                             // 如果下载失败，仍然存储URL作为回退
@@ -462,9 +465,13 @@
                         }
                     } else {
                         imageItem.enhancedImage = `data:image/jpeg;base64,${resultImage}`
+                        // 计算处理后图片大小
+                        imageItem.enhancedImageSize = calculateBase64ImageSize(imageItem.enhancedImage)
                     }
                 } else {
                     imageItem.enhancedImage = resultImage
+                    // 计算处理后图片大小
+                    imageItem.enhancedImageSize = calculateBase64ImageSize(resultImage)
                 }
                 imageItem.status = 'completed'
             } else {

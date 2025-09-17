@@ -92,7 +92,11 @@
                         <span class="batch-result-name">{{ result.file?.name || `图片 ${index + 1}` }}</span>
                     </div>
                     <div class="batch-result-details">
-                        <span class="batch-result-size">{{ formatFileSize(result.file?.size || 0) }}</span>
+                        <span class="batch-result-size">
+                            {{ result.status === 'completed' && result.enhancedImageSize
+                            ? formatFileSize(result.enhancedImageSize)
+                            : formatFileSize(result.file?.size || 0) }}
+                        </span>
                         <span class="batch-result-status" :class="result.status">
                             {{ getStatusText(result.status) }}
                         </span>
@@ -173,6 +177,7 @@
         preview: string
         status: 'pending' | 'processing' | 'completed' | 'error'
         enhancedImage?: string
+        enhancedImageSize?: number  // 处理后图片的大小（字节）
         error?: string
     }
 

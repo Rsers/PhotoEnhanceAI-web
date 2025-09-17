@@ -176,6 +176,7 @@
   import BatchResultViewer from '@/components/BatchResultViewer.vue'
   import { convertAvifToJpg, isAvifFile, isSupportedImageFormat } from '@/utils/imageConverter'
   import { downloadImageAsBase64 } from '@/utils/imageDownloader'
+  import { calculateBase64ImageSize } from '@/utils/imageSize'
 
   // 模式切换
   const currentMode = ref < 'single' | 'batch' > ('single')
@@ -343,7 +344,9 @@
             try {
               const base64Data = await downloadImageAsBase64(resultImage)
               enhancedImage.value = base64Data
-              console.log(`✅ 服务器图片已转换为Base64存储`)
+              // 计算处理后图片大小
+              const enhancedSize = calculateBase64ImageSize(base64Data)
+              console.log(`✅ 服务器图片已转换为Base64存储，大小: ${enhancedSize} bytes`)
             } catch (downloadError) {
               console.error('❌ 下载服务器图片失败:', downloadError)
               // 如果下载失败，仍然存储URL作为回退
@@ -352,9 +355,15 @@
           } else {
             // 如果是base64字符串，添加前缀
             enhancedImage.value = `data:image/jpeg;base64,${resultImage}`
+            // 计算处理后图片大小
+            const enhancedSize = calculateBase64ImageSize(enhancedImage.value)
+            console.log(`✅ 图片处理完成，大小: ${enhancedSize} bytes`)
           }
         } else {
           enhancedImage.value = resultImage
+          // 计算处理后图片大小
+          const enhancedSize = calculateBase64ImageSize(resultImage)
+          console.log(`✅ 图片处理完成，大小: ${enhancedSize} bytes`)
         }
         console.log('图片增强成功')
       } else {
