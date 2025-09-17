@@ -25,7 +25,7 @@
                         拖拽多张图片到此处，或点击下方按钮选择文件
                     </p>
                     <p class="batch-upload-tip">
-                        支持多选，仅支持 JPG 格式，每张图片不超过 10MB
+                        支持 JPG、JPEG、AVIF 三种格式，每张图片不超过 10MB
                     </p>
                 </div>
 
