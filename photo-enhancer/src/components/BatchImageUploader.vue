@@ -223,6 +223,7 @@
         preview: string
         status: 'pending' | 'processing' | 'completed' | 'error'
         enhancedImage?: string
+        enhancedImageSize?: number
         error?: string
     }
 
@@ -341,10 +342,10 @@
     }
 
     // 处理文件选择
-    const handleFiles = (files: FileList | null) => {
+    const handleFiles = (files: FileList | File[] | null) => {
         if (!files) return
 
-        const fileArray = Array.from(files)
+        const fileArray = Array.isArray(files) ? files : Array.from(files)
         console.log(`选择了 ${fileArray.length} 个文件`)
 
         // 过滤有效文件
@@ -405,7 +406,7 @@
 
         // 并发处理所有图片（限制并发数）
         const concurrency = getConcurrency() // 从配置文件获取并发数
-        const chunks = []
+        const chunks: ImageItem[][] = []
         for (let i = 0; i < selectedImages.value.length; i += concurrency) {
             chunks.push(selectedImages.value.slice(i, i + concurrency))
         }

@@ -9,6 +9,7 @@
           </path>
         </svg>
       </div>
+      <h1 class="main-title">AI工具箱在线版</h1>
       <h1 class="main-title">GFPGAN</h1>
       <h1 class="main-title">照片超分辨率增强</h1>
       <h1 class="main-title">人像美化</h1>
@@ -167,6 +168,17 @@
         </div>
       </div>
     </div>
+
+    <!-- ICP备案信息 -->
+    <footer class="icp-footer">
+      <div class="icp-content">
+        <p class="icp-text">
+          <span class="site-name">AI工具箱在线版</span>
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer"
+            class="icp-number">陕ICP备20002623号-4</a>
+        </p>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -518,6 +530,69 @@
     overflow: hidden;
   }
 
+  /* ICP备案信息样式 */
+  .icp-footer {
+    margin-top: 3rem;
+    padding: 2rem 0;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(15px);
+    border-radius: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .icp-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  .icp-text {
+    margin: 0;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-weight: 500;
+  }
+
+  .site-name {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 1.1rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .icp-number {
+    font-weight: 600;
+    color: #f0f0f0;
+    font-size: 1rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+  }
+
+  .icp-number:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .icp-number:active {
+    transform: translateY(0);
+  }
+
   /* 响应式设计 */
   @media (max-width: 768px) {
 
@@ -525,6 +600,33 @@
     .batch-results-section {
       padding: 1.5rem;
       margin-bottom: 1.5rem;
+    }
+
+    .icp-footer {
+      margin-top: 2rem;
+      padding: 1.5rem 0;
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .icp-content {
+      padding: 0 1rem;
+    }
+
+    .icp-text {
+      font-size: 0.9rem;
+      flex-direction: column;
+      gap: 0.8rem;
+      font-weight: 600;
+    }
+
+    .site-name {
+      font-size: 1rem;
+    }
+
+    .icp-number {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.8rem;
     }
   }
 </style>
