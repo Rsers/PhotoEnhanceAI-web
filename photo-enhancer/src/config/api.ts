@@ -1,7 +1,7 @@
 // API 配置文件
 export const API_CONFIG = {
     // 服务器地址 - 可以根据需要修改
-    BASE_URL: 'http://139.186.166.51:8000',
+    BASE_URL: 'http://43.143.246.112:8000',
 
     // API 端点
     ENDPOINTS: {
