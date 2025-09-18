@@ -2,6 +2,8 @@
 
 一个基于 AI 技术的照片超分辨率增强工具，可以将低分辨率照片转换为高分辨率版本，提升图片质量和清晰度。支持单张处理和批量处理两种模式。
 
+> **🚨 部署前必读**：请确保服务器已开放 **8000 端口**，否则前端无法正常连接后端 API 服务。详细配置方法请查看 [服务器部署](#服务器部署) 部分。
+
 ## ✨ 功能特性
 
 ### 🖼️ 图片处理
@@ -57,29 +59,88 @@
 ### 环境要求
 - Node.js 16+ 
 - npm 或 yarn
+- Python 3.8+ (后端服务)
+- 服务器端口 8000 已开放
 
-### 安装依赖
+### 前端开发
+
+#### 安装依赖
 ```bash
-cd photo-enhancer
+cd PhotoEnhanceAI-web
 npm install
 ```
 
-### 启动开发服务器
+#### 启动开发服务器
 ```bash
 npm run dev
 ```
 
 访问 `http://localhost:5173` 查看应用
 
-### 构建生产版本
+#### 构建生产版本
 ```bash
 npm run build
+```
+
+### 后端服务
+
+#### 环境准备
+```bash
+# 安装 Python 依赖
+pip install fastapi uvicorn python-multipart pillow opencv-python
+```
+
+#### 启动后端服务
+```bash
+# 启动 FastAPI 服务
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 服务器部署
+
+#### 端口配置
+**⚠️ 重要提醒：请确认服务器已开放 8000 端口**
+
+1. **云服务器安全组配置**：
+   - 登录云服务器控制台
+   - 进入安全组设置
+   - 添加入站规则：端口 8000，协议 TCP，来源 0.0.0.0/0
+
+2. **防火墙配置**：
+   ```bash
+   # Ubuntu/Debian
+   sudo ufw allow 8000
+   
+   # CentOS/RHEL
+   sudo firewall-cmd --permanent --add-port=8000/tcp
+   sudo firewall-cmd --reload
+   ```
+
+3. **验证端口开放**：
+   ```bash
+   # 检查端口是否监听
+   netstat -tlnp | grep 8000
+   
+   # 测试端口连通性
+   telnet your-server-ip 8000
+   ```
+
+#### 生产环境部署
+```bash
+# 1. 构建前端
+npm run build
+
+# 2. 启动后端服务（生产模式）
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+
+# 3. 使用 Nginx 反向代理（可选）
+# 配置 Nginx 将 80 端口请求转发到 8000 端口
 ```
 
 ## 📁 项目结构
 
 ```
-photo-enhancer/
+PhotoEnhanceAI-web/
 ├── src/
 │   ├── components/           # Vue 组件
 │   │   ├── BatchImageUploader.vue    # 批量图片上传组件
@@ -104,7 +165,11 @@ photo-enhancer/
 │   │   └── main.css                # 主样式文件
 │   └── router/              # 路由配置
 ├── public/                  # 公共资源
-└── dist/                    # 构建输出
+├── dist/                    # 构建输出
+├── package.json             # 项目依赖配置
+├── vite.config.ts           # Vite 构建配置
+├── tsconfig.json            # TypeScript 配置
+└── README.md                # 项目说明文档
 ```
 
 ## 🔧 API 接口
@@ -150,9 +215,51 @@ GET /api/v1/status/{taskId}
 
 采用简洁现代的设计风格，使用 Tailwind CSS 实现响应式布局，确保在各种设备上都有良好的用户体验。
 
-## 🚨 重要：前端样式修改不生效问题解决方案
+## 🚨 故障排除
 
-### 常见原因及解决方法
+### 端口连接问题
+
+#### 问题：前端无法连接后端 API
+**症状**：上传图片后显示"连接失败"或"网络错误"
+
+**解决方案**：
+1. **检查 8000 端口是否开放**：
+   ```bash
+   # 检查端口监听状态
+   netstat -tlnp | grep 8000
+   
+   # 如果显示 "tcp 0.0.0.0:8000"，说明端口已监听
+   ```
+
+2. **检查防火墙设置**：
+   ```bash
+   # Ubuntu/Debian
+   sudo ufw status
+   sudo ufw allow 8000
+   
+   # CentOS/RHEL
+   sudo firewall-cmd --list-ports
+   sudo firewall-cmd --permanent --add-port=8000/tcp
+   sudo firewall-cmd --reload
+   ```
+
+3. **检查云服务器安全组**：
+   - 登录云服务器控制台
+   - 进入安全组/防火墙设置
+   - 确保 8000 端口已开放，来源为 0.0.0.0/0
+
+4. **测试端口连通性**：
+   ```bash
+   # 从外部测试端口
+   telnet your-server-ip 8000
+   
+   # 或使用 curl 测试
+   curl http://your-server-ip:8000/api/v1/status/test
+   ```
+
+### 前端样式修改不生效问题
+
+#### 常见原因及解决方法
 
 1. **CSS 优先级问题**
    - 检查是否有 `!important` 冲突
@@ -178,6 +285,7 @@ GET /api/v1/status/{taskId}
 - 使用浏览器开发者工具检查样式是否被应用
 - 检查控制台是否有错误信息
 - 使用 `console.log` 调试组件状态
+- 检查网络面板中的 API 请求状态
 
 ## ⚡ 性能优化记录
 
@@ -231,9 +339,12 @@ GET /api/v1/status/{taskId}
 - [x] 实时显示功能
 - [x] 文件大小显示优化
 - [x] API配置统一管理
-- [ ] 后端 API 开发
-- [ ] 云服务器部署
+- [x] 后端 API 开发
+- [x] 云服务器部署
 - [ ] 更多图片格式支持 (PNG, WebP等)
+- [ ] 用户认证系统
+- [ ] 图片处理历史记录
+- [ ] 移动端适配优化
 
 ## ⚙️ 配置化重构
 
