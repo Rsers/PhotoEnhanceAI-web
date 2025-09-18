@@ -10,7 +10,6 @@
         </svg>
       </div>
       <h1 class="main-title">AI工具箱在线版</h1>
-      <h1 class="main-title">GFPGAN</h1>
       <h1 class="main-title">照片超分辨率增强</h1>
       <h1 class="main-title">人像美化</h1>
       <p class="subtitle">
