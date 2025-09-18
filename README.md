@@ -2,7 +2,11 @@
 
 一个基于 AI 技术的照片超分辨率增强工具，可以将低分辨率照片转换为高分辨率版本，提升图片质量和清晰度。支持单张处理和批量处理两种模式。
 
-> **🚨 部署前必读**：请确保服务器已开放 **8000 端口**，否则前端无法正常连接后端 API 服务。详细配置方法请查看 [服务器部署](#服务器部署) 部分。
+> **🚨 部署前必读**：
+> - 请确保服务器已开放 **8000 端口**，否则前端无法正常连接后端 API 服务
+> - 如果使用国内服务器，推送代码到 GitHub 可能遇到网络问题，请参考 [GitHub 访问问题](#github-访问问题) 解决方案
+> 
+> 详细配置方法请查看 [服务器部署](#服务器部署) 和 [故障排除](#故障排除) 部分。
 
 ## ✨ 功能特性
 
@@ -217,6 +221,72 @@ GET /api/v1/status/{taskId}
 
 ## 🚨 故障排除
 
+### GitHub 访问问题
+
+#### 问题：无法推送代码到 GitHub
+**症状**：`git push` 时出现连接超时、SSL错误或网络错误
+
+**解决方案**：
+
+1. **修改 Hosts 文件 (推荐)**：
+   ```bash
+   # 备份原始 hosts 文件
+   sudo cp /etc/hosts /etc/hosts.backup
+   
+   # 添加 GitHub IP 地址
+   sudo tee -a /etc/hosts << 'EOF'
+   
+   # GitHub IP addresses (2025)
+   140.82.113.4 github.com
+   185.199.108.153 assets-cdn.github.com
+   199.232.69.194 github.global.ssl.fastly.net
+   140.82.112.3 api.github.com
+   EOF
+   
+   # 刷新 DNS 缓存
+   sudo systemctl restart systemd-resolved
+   ```
+
+2. **使用 GitHub CLI**：
+   ```bash
+   # 安装 GitHub CLI
+   curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+   sudo apt update
+   sudo apt install gh
+   
+   # 登录 GitHub
+   gh auth login
+   
+   # 推送代码
+   gh repo sync
+   ```
+
+3. **配置 SSH 访问**：
+   ```bash
+   # 生成 SSH 密钥
+   ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+   
+   # 查看公钥
+   cat ~/.ssh/id_rsa.pub
+   
+   # 将公钥添加到 GitHub 账户
+   # 访问: https://github.com/settings/keys
+   
+   # 切换到 SSH 方式
+   git remote set-url origin git@github.com:Rsers/PhotoEnhanceAI-web.git
+   ```
+
+4. **使用镜像站 (备选)**：
+   ```bash
+   # 尝试不同的镜像站
+   git remote set-url origin https://github.com.cnpmjs.org/Rsers/PhotoEnhanceAI-web.git
+   # 或
+   git remote set-url origin https://hub.fastgit.xyz/Rsers/PhotoEnhanceAI-web.git
+   # 或
+   git remote set-url origin https://ghproxy.com/https://github.com/Rsers/PhotoEnhanceAI-web.git
+   ```
+
 ### 端口连接问题
 
 #### 问题：前端无法连接后端 API
@@ -325,6 +395,12 @@ GET /api/v1/status/{taskId}
 - **实现**: Base64图片大小计算算法
 - **效果**: 用户看到的是真实的处理后图片大小
 
+### GitHub 访问优化
+- **问题**: 国内服务器无法正常推送代码到 GitHub
+- **解决方案**: 修改 hosts 文件，直接解析 GitHub IP 地址
+- **实现**: 添加 GitHub 官方 IP 地址到 `/etc/hosts`
+- **效果**: 成功绕过 DNS 污染，稳定访问 GitHub
+
 ## 📝 开发计划
 
 - [x] 前端界面开发
@@ -341,6 +417,7 @@ GET /api/v1/status/{taskId}
 - [x] API配置统一管理
 - [x] 后端 API 开发
 - [x] 云服务器部署
+- [x] GitHub 访问问题解决方案
 - [ ] 更多图片格式支持 (PNG, WebP等)
 - [ ] 用户认证系统
 - [ ] 图片处理历史记录
