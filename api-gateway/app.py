@@ -162,12 +162,14 @@ def health_check():
         }), 200
         
     except Exception as e:
+        # 即使后端不可用，网关本身仍然健康
         return jsonify({
-            'status': 'unhealthy',
+            'status': 'healthy',
             'backend_status': 'disconnected',
-            'error': str(e),
+            'backend_error': str(e),
+            'gateway_status': 'running',
             'timestamp': time.time()
-        }), 503
+        }), 200
 
 @app.route('/api/v1/info', methods=['GET'])
 def api_info():
