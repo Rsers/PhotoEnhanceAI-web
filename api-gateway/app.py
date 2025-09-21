@@ -13,6 +13,7 @@ import json
 import time
 from urllib.parse import urljoin
 import logging
+from config import config
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -21,16 +22,12 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)  # 允许跨域请求
 
-# 后端API服务器配置
-BACKEND_API_BASE = "http://43.143.246.112:8000"
-BACKEND_TIMEOUT = 300  # 5分钟超时
+# 从配置文件获取后端API服务器配置
+BACKEND_API_BASE = config.get_backend_url()
+BACKEND_TIMEOUT = config.get_timeout()
 
 # 支持的API端点
-SUPPORTED_ENDPOINTS = {
-    'enhance': '/api/v1/enhance',
-    'status': '/api/v1/status',
-    'download': '/api/v1/download'
-}
+SUPPORTED_ENDPOINTS = config.get_endpoints()
 
 @app.route('/api/v1/enhance', methods=['POST'])
 def enhance_image():
@@ -185,10 +182,49 @@ def api_info():
             'status': '/api/v1/status/{task_id}',
             'download': '/api/v1/download/{task_id}',
             'health': '/api/v1/health',
-            'info': '/api/v1/info'
+            'info': '/api/v1/info',
+            'config': '/api/v1/config'
         },
-        'backend': BACKEND_API_BASE
+        'backend': config.get_backend_url(),
+        'config_info': config.get_config_info()
     })
+
+@app.route('/api/v1/config', methods=['GET'])
+def get_config():
+    """
+    获取配置信息接口
+    """
+    return jsonify(config.get_config_info())
+
+@app.route('/api/v1/config/backend', methods=['POST'])
+def update_backend_config():
+    """
+    更新后端服务地址接口
+    """
+    try:
+        data = request.get_json()
+        if not data or 'backend_url' not in data:
+            return jsonify({'error': '缺少backend_url参数'}), 400
+        
+        new_url = data['backend_url']
+        success = config.update_backend_url(new_url)
+        
+        if success:
+            # 重新加载配置
+            global BACKEND_API_BASE
+            BACKEND_API_BASE = config.get_backend_url()
+            
+            return jsonify({
+                'message': '后端服务地址更新成功',
+                'new_backend_url': new_url,
+                'timestamp': time.time()
+            }), 200
+        else:
+            return jsonify({'error': '更新失败'}), 500
+            
+    except Exception as e:
+        logger.error(f"更新后端配置时出错: {str(e)}")
+        return jsonify({'error': '服务器内部错误'}), 500
 
 @app.errorhandler(404)
 def not_found(error):

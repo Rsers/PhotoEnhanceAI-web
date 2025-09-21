@@ -45,6 +45,7 @@
 - **动态配置**: 支持运行时修改服务器地址
 - **环境适配**: 支持开发和生产环境配置
 - **无硬编码**: 移除所有硬编码的IP地址和URL
+- **灵活更新**: 支持多种方式动态更新后端服务地址
 
 ## 🛠️ 技术栈
 
@@ -147,8 +148,13 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 PhotoEnhanceAI-web/
 ├── api-gateway/             # API网关服务
 │   ├── app.py              # Flask网关应用
+│   ├── config.py           # 配置管理模块
 │   ├── requirements.txt    # Python依赖
-│   └── start.sh           # 启动脚本
+│   ├── start.sh           # 启动脚本
+│   ├── simple_update.py   # 简单更新工具
+│   ├── update_backend.py   # 完整更新工具
+│   ├── gateway_config.json # 配置文件
+│   └── README.md          # API网关文档
 ├── src/
 │   ├── components/           # Vue 组件
 │   │   ├── BatchImageUploader.vue    # 批量图片上传组件
@@ -244,6 +250,33 @@ GET /api/v1/info
 - description: 描述信息
 - endpoints: 支持的接口列表
 - backend: 后端服务地址
+- config_info: 配置信息
+```
+
+### 配置管理接口
+```
+GET /api/v1/config
+
+返回:
+- backend_url: 后端服务地址
+- timeout: 超时时间
+- max_file_size: 最大文件大小
+- endpoints: 支持的端点
+- config_file: 配置文件路径
+```
+
+### 更新后端地址接口
+```
+POST /api/v1/config/backend
+Content-Type: application/json
+
+参数:
+- backend_url: 新的后端服务地址
+
+返回:
+- message: 更新结果消息
+- new_backend_url: 新的后端地址
+- timestamp: 更新时间戳
 ```
 
 ### 兼容性说明
@@ -446,6 +479,12 @@ GET /api/v1/info
 - **实现**: Flask网关 + nginx反向代理 + Let's Encrypt证书
 - **效果**: 小程序可以合规调用 `https://gongjuxiang.work/api/v1/` 接口
 
+### 动态配置优化
+- **问题**: 后端服务IP地址经常变更，需要手动修改配置
+- **解决方案**: 实现动态配置管理系统，支持多种更新方式
+- **实现**: 配置文件管理 + API接口更新 + 命令行工具
+- **效果**: 可以随时方便地更新后端服务地址，无需重启整个系统
+
 ## 📝 开发计划
 
 - [x] 前端界面开发
@@ -466,6 +505,8 @@ GET /api/v1/info
 - [x] API网关服务实现
 - [x] HTTPS证书部署
 - [x] 微信小程序兼容性支持
+- [x] 动态配置管理系统
+- [x] 后端地址灵活更新
 - [ ] 更多图片格式支持 (PNG, WebP等)
 - [ ] 用户认证系统
 - [ ] 图片处理历史记录
@@ -553,6 +594,93 @@ const concurrency = getConcurrency() // 获取并发数
 const batchSize = getDownloadBatchSize() // 获取下载批次大小
 const apiUrl = getApiUrl(API_CONFIG.ENDPOINTS.ENHANCE) // 获取完整API URL
 ```
+
+## 🔧 动态配置管理
+
+### 后端服务地址更新
+
+当后端服务IP地址变更时，可以通过多种方式快速更新配置：
+
+#### 方式1：命令行工具更新（推荐）
+
+```bash
+# 进入API网关目录
+cd /home/ubuntu/PhotoEnhanceAI-web/api-gateway
+
+# 简单更新（非交互式）
+python3 simple_update.py 新IP:8000
+
+# 完整更新工具（支持更多选项）
+python3 update_backend.py --url http://新IP:8000
+python3 update_backend.py --show  # 查看当前配置
+python3 update_backend.py --test http://新IP:8000  # 测试连接
+```
+
+#### 方式2：API接口更新
+
+```bash
+# 通过HTTPS接口更新
+curl -X POST https://gongjuxiang.work/api/v1/config/backend \
+  -H "Content-Type: application/json" \
+  -d '{"backend_url": "http://新IP:8000"}'
+
+# 查看当前配置
+curl https://gongjuxiang.work/api/v1/config
+```
+
+#### 方式3：直接编辑配置文件
+
+```bash
+# 编辑配置文件
+nano /home/ubuntu/PhotoEnhanceAI-web/api-gateway/gateway_config.json
+
+# 配置文件内容示例
+{
+  "backend_api_base": "http://新IP:8000",
+  "backend_timeout": 300,
+  "gateway_port": 5000,
+  "max_file_size": 104857600,
+  "supported_endpoints": {
+    "enhance": "/api/v1/enhance",
+    "status": "/api/v1/status",
+    "download": "/api/v1/download"
+  }
+}
+```
+
+### 更新后重启服务
+
+```bash
+# 停止API网关服务
+pkill -f "python3 app.py"
+
+# 重新启动服务
+cd /home/ubuntu/PhotoEnhanceAI-web/api-gateway
+python3 app.py &
+
+# 验证服务状态
+curl https://gongjuxiang.work/api/v1/health
+```
+
+### 配置验证
+
+```bash
+# 检查当前配置
+python3 /home/ubuntu/PhotoEnhanceAI-web/api-gateway/update_backend.py --show
+
+# 测试后端连接
+python3 /home/ubuntu/PhotoEnhanceAI-web/api-gateway/update_backend.py --test http://新IP:8000
+
+# 查看API网关信息
+curl https://gongjuxiang.work/api/v1/info | python3 -m json.tool
+```
+
+### 使用场景
+
+1. **后端服务迁移**：当后端服务更换服务器时
+2. **IP地址变更**：云服务器IP地址更新时
+3. **负载均衡**：切换到不同的后端服务实例
+4. **故障转移**：主服务故障时切换到备用服务
 
 ## 📄 许可证
 
