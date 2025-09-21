@@ -67,7 +67,7 @@ def test_backend_connection(url: str) -> bool:
     """测试后端服务连接"""
     try:
         print(f"🔍 测试后端服务连接: {url}")
-        response = requests.get(f"{url}/api/v1/status/test", timeout=5)
+        response = requests.get(f"{url}/health", timeout=5)
         if response.status_code == 200:
             print("✅ 后端服务连接正常")
             return True

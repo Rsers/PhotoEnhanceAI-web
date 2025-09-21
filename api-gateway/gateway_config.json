@@ -1,5 +1,5 @@
 {
-  "backend_api_base": "http://192.168.1.100:8000",
+  "backend_api_base": "http://49.232.44.199:8000",
   "backend_timeout": 300,
   "gateway_port": 5000,
   "max_file_size": 104857600,

@@ -148,7 +148,7 @@ def health_check():
     """
     try:
         # 检查后端服务是否可用
-        backend_url = urljoin(BACKEND_API_BASE, '/api/v1/status/test')
+        backend_url = urljoin(BACKEND_API_BASE, '/health')
         response = requests.get(backend_url, timeout=5)
         
         return jsonify({
