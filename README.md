@@ -145,6 +145,10 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 
 ```
 PhotoEnhanceAI-web/
+├── api-gateway/             # API网关服务
+│   ├── app.py              # Flask网关应用
+│   ├── requirements.txt    # Python依赖
+│   └── start.sh           # 启动脚本
 ├── src/
 │   ├── components/           # Vue 组件
 │   │   ├── BatchImageUploader.vue    # 批量图片上传组件
@@ -178,31 +182,25 @@ PhotoEnhanceAI-web/
 
 ## 🔧 API 接口
 
-### 单张照片处理接口
+### API网关服务
+
+本项目实现了API网关服务，为微信小程序等外部应用提供HTTPS API接口。网关服务自动代理到基于IP的后端服务，解决小程序只能调用HTTPS接口的限制。
+
+**网关地址**: `https://gongjuxiang.work/api/v1/`
+
+### 图片增强处理接口
 ```
-POST /api/enhance
+POST /api/v1/enhance
 Content-Type: multipart/form-data
 
 参数:
 - file: 图片文件 (JPG、JPEG、AVIF 格式)
+- tile_size: 瓦片大小 (可选，默认400)
+- quality_level: 质量等级 (可选，默认high)
 
 返回:
-- enhanced_image: 处理后的图片 URL
-- original_size: 原始图片尺寸
-- enhanced_size: 处理后图片尺寸
-```
-
-### 批量照片处理接口
-```
-POST /api/batch/enhance
-Content-Type: multipart/form-data
-
-参数:
-- files: 图片文件数组 (JPG、JPEG、AVIF 格式)
-
-返回:
-- task_ids: 任务ID数组
-- status: 处理状态
+- task_id: 任务ID (异步处理)
+- status: 任务状态
 ```
 
 ### 任务状态查询接口
@@ -213,7 +211,48 @@ GET /api/v1/status/{taskId}
 - status: 任务状态 (queued/processing/completed/failed)
 - progress: 处理进度 (0-1)
 - download_url: 下载链接 (完成时)
+- error: 错误信息 (失败时)
 ```
+
+### 结果下载接口
+```
+GET /api/v1/download/{taskId}
+
+返回:
+- 直接返回处理后的图片文件
+- Content-Type: image/jpeg
+- Content-Disposition: attachment
+```
+
+### 健康检查接口
+```
+GET /api/v1/health
+
+返回:
+- status: 服务状态 (healthy/unhealthy)
+- backend_status: 后端连接状态
+- timestamp: 检查时间戳
+```
+
+### API信息接口
+```
+GET /api/v1/info
+
+返回:
+- name: API网关名称
+- version: 版本号
+- description: 描述信息
+- endpoints: 支持的接口列表
+- backend: 后端服务地址
+```
+
+### 兼容性说明
+
+- **HTTPS支持**: 所有接口均支持HTTPS访问
+- **跨域支持**: 支持CORS跨域请求
+- **文件上传**: 支持最大100MB文件上传
+- **超时设置**: 处理超时时间5分钟
+- **错误处理**: 统一的错误响应格式
 
 ## 🎨 界面设计
 
@@ -401,6 +440,12 @@ GET /api/v1/status/{taskId}
 - **实现**: 添加 GitHub 官方 IP 地址到 `/etc/hosts`
 - **效果**: 成功绕过 DNS 污染，稳定访问 GitHub
 
+### API网关优化
+- **问题**: 微信小程序只能调用HTTPS接口，无法直接调用基于IP的API
+- **解决方案**: 实现API网关服务，提供HTTPS接口代理
+- **实现**: Flask网关 + nginx反向代理 + Let's Encrypt证书
+- **效果**: 小程序可以合规调用 `https://gongjuxiang.work/api/v1/` 接口
+
 ## 📝 开发计划
 
 - [x] 前端界面开发
@@ -418,10 +463,15 @@ GET /api/v1/status/{taskId}
 - [x] 后端 API 开发
 - [x] 云服务器部署
 - [x] GitHub 访问问题解决方案
+- [x] API网关服务实现
+- [x] HTTPS证书部署
+- [x] 微信小程序兼容性支持
 - [ ] 更多图片格式支持 (PNG, WebP等)
 - [ ] 用户认证系统
 - [ ] 图片处理历史记录
 - [ ] 移动端适配优化
+- [ ] API限流和监控
+- [ ] 负载均衡优化
 
 ## ⚙️ 配置化重构
 
@@ -472,8 +522,8 @@ export const BATCH_PROCESSING_CONFIG = {
 
 ```typescript
 export const API_CONFIG = {
-    // 服务器地址 - 可以根据需要修改
-    BASE_URL: 'http://139.186.166.51:8000',
+    // 服务器地址 - 使用HTTPS网关地址
+    BASE_URL: 'https://gongjuxiang.work',
     
     // API 端点
     ENDPOINTS: {
