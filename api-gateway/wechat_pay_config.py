@@ -32,7 +32,7 @@ class WeChatPayConfig:
     CLOSE_ORDER_URL = "https://api.mch.weixin.qq.com/pay/closeorder"
     
     # 支付回调通知URL (开发调试用)
-    NOTIFY_URL = "https://your-domain.com/api/wechat/pay/notify"
+    NOTIFY_URL = "https://www.gongjuxiang.work/api/wechat/pay/notify/"
     
     # 交易类型
     TRADE_TYPE_JSAPI = "JSAPI"  # 小程序支付
