@@ -32,11 +32,11 @@ export WECHAT_NOTIFY_URL="https://your-domain.com/api/wechat/pay/notify/"
 ### 方式1：环境变量部署（推荐）
 ```bash
 # 设置环境变量
-export WECHAT_MCH_ID="1581082441"
-export WECHAT_APPID="wx3b37b90a51e1612d"
-export WECHAT_SECRET="33c46174af0c0a684a0fb026273b7240"
-export WECHAT_API_KEY="k8Xp2Aq9LmN5rT7vEwZ1sY4uH6cBnJ3d"
-export WECHAT_NOTIFY_URL="https://www.gongjuxiang.work/api/wechat/pay/notify/"
+export WECHAT_MCH_ID="你的商户号"
+export WECHAT_APPID="你的小程序APPID"
+export WECHAT_SECRET="你的小程序Secret"
+export WECHAT_API_KEY="你的微信支付API密钥"
+export WECHAT_NOTIFY_URL="https://your-domain.com/api/wechat/pay/notify/"
 
 # 启动服务
 cd api-gateway
