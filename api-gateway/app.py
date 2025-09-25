@@ -527,4 +527,18 @@ def internal_error(error):
 if __name__ == '__main__':
     logger.info("启动API网关服务...")
     logger.info(f"后端API地址: {BACKEND_API_BASE}")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    logger.info("使用HTTPS协议，端口443")
+    
+    # 配置SSL证书路径
+    ssl_cert = '/etc/letsencrypt/live/www.gongjuxiang.work/fullchain.pem'
+    ssl_key = '/etc/letsencrypt/live/www.gongjuxiang.work/privkey.pem'
+    
+    # 检查SSL证书是否存在
+    import os
+    if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
+        logger.info("使用SSL证书启动HTTPS服务")
+        app.run(host='0.0.0.0', port=443, ssl_context=(ssl_cert, ssl_key), debug=False)
+    else:
+        logger.warning("SSL证书不存在，使用HTTP服务（仅用于开发）")
+        logger.warning("生产环境请配置SSL证书")
+        app.run(host='0.0.0.0', port=5000, debug=False)

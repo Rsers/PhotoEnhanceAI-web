@@ -1,7 +1,7 @@
 {
   "backend_api_base": "http://49.232.44.199:8000",
   "backend_timeout": 300,
-  "gateway_port": 5000,
+  "gateway_port": 443,
   "max_file_size": 104857600,
   "supported_endpoints": {
     "enhance": "/api/v1/enhance",

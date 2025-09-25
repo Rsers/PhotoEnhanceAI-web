@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_CONFIG = {
     "backend_api_base": "http://43.143.246.112:8000",
     "backend_timeout": 300,
-    "gateway_port": 5000,
+    "gateway_port": 443,
     "max_file_size": 100 * 1024 * 1024,  # 100MB
     "supported_endpoints": {
         "enhance": "/api/v1/enhance",
