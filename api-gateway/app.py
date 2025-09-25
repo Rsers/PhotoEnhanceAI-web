@@ -19,6 +19,7 @@ from config import config
 from wechat_pay_utils import WeChatPayAPI, WeChatPayUtils
 from order_manager import OrderManager
 from wechat_pay_config import WeChatPayConfig
+from wechat_auth import WeChatAuth
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +38,7 @@ SUPPORTED_ENDPOINTS = config.get_endpoints()
 # 初始化微信支付相关组件
 pay_api = WeChatPayAPI()
 order_manager = OrderManager()
+wechat_auth = WeChatAuth()
 
 @app.route('/api/v1/enhance', methods=['POST'])
 def enhance_image():
@@ -193,6 +195,9 @@ def api_info():
             'health': '/api/v1/health',
             'info': '/api/v1/info',
             'config': '/api/v1/config',
+            'wechat_auth': {
+                'openid': '/api/wechat/auth/openid'
+            },
             'wechat_pay': {
                 'create': '/api/wechat/pay/create',
                 'notify': '/api/wechat/pay/notify',
@@ -241,6 +246,44 @@ def update_backend_config():
     except Exception as e:
         logger.error(f"更新后端配置时出错: {str(e)}")
         return jsonify({'error': '服务器内部错误'}), 500
+
+# ==================== 微信认证相关API ====================
+
+@app.route('/api/wechat/auth/openid', methods=['POST'])
+def get_openid():
+    """通过code获取openid"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'code' not in data:
+            return jsonify({
+                'success': False,
+                'error': '缺少code参数'
+            }), 400
+        
+        code = data['code']
+        result = wechat_auth.get_openid(code)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'openid': result['data']['openid'],
+                    'session_key': result['data']['session_key']
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"获取openid失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': '服务器内部错误'
+        }), 500
 
 # ==================== 微信支付相关API ====================
 

@@ -10,6 +10,9 @@ class WeChatPayConfig:
     # 小程序APPID (开发调试用)
     APPID = "wx3b37b90a51e1612d"
     
+    # 小程序Secret (开发调试用)
+    SECRET = "your_app_secret_here"
+    
     # 微信支付API密钥 (开发调试用)
     API_KEY = "k8Xp2Aq9LmN5rT7vEwZ1sY4uH6cBnJ3d"
     
