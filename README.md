@@ -2,6 +2,28 @@
 
 一个基于 AI 技术的照片超分辨率增强工具，可以将低分辨率照片转换为高分辨率版本，提升图片质量和清晰度。支持单张处理和批量处理两种模式。
 
+## 🎯 项目核心功能
+
+本项目实现了三个核心功能模块：
+
+### 1. 🌐 Web前端页面
+- **Vue 3 + TypeScript** 构建的现代化Web界面
+- **响应式设计**，支持桌面端和移动端访问
+- **图片上传、处理、对比展示**等完整用户体验
+- **批量处理**和**单张处理**两种模式
+
+### 2. 🔄 GFPGAN面部增强API中转服务
+- **API网关服务**：为微信小程序提供HTTPS接口
+- **GPU服务器代理**：真正的GFPGAN API部署在GPU服务器上
+- **域名合规**：解决微信小程序对API域名的HTTPS和备案要求
+- **中转调用**：通过当前服务器进行API中转，满足小程序合规要求
+
+### 3. 💳 微信小程序"喵喵美颜"支付后端
+- **完整的微信支付API**：订单创建、支付回调、订单查询
+- **用户认证**：微信登录openid获取
+- **订单管理**：本地订单存储和状态跟踪
+- **支付统计**：订单数据分析和统计功能
+
 > **🚨 部署前必读**：
 > - 请确保服务器已开放 **8000 端口**，否则前端无法正常连接后端 API 服务
 > - 如果使用国内服务器，推送代码到 GitHub 可能遇到网络问题，请参考 [GitHub 访问问题](#github-访问问题) 解决方案
@@ -49,15 +71,22 @@
 
 ## 🛠️ 技术栈
 
-### 前端
+### 前端 (Web页面)
 - **Vue 3** - 渐进式 JavaScript 框架
 - **Vite** - 快速的前端构建工具
 - **TypeScript** - 类型安全的 JavaScript
 - **Tailwind CSS** - 实用优先的 CSS 框架
 
-### 后端 (计划中)
-- **FastAPI** - 现代、快速的 Python Web 框架
+### 后端服务
+- **Flask** - Python Web框架 (API网关服务)
+- **FastAPI** - 现代、快速的 Python Web 框架 (GPU服务器)
 - **Python** - 后端开发语言
+- **Nginx** - 反向代理和HTTPS支持
+
+### 微信小程序
+- **微信小程序原生开发** - "喵喵美颜"小程序
+- **微信支付API** - 完整的支付流程集成
+- **HTTPS API调用** - 通过API网关服务
 
 ## 🚀 快速开始
 
@@ -163,14 +192,17 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 
 ```
 PhotoEnhanceAI-web/
-├── api-gateway/             # API网关服务
-│   ├── app.py              # Flask网关应用
+├── api-gateway/             # API网关服务 (Flask)
+│   ├── app.py              # Flask网关应用主文件
 │   ├── config.py           # 配置管理模块
+│   ├── wechat_pay_config.py # 微信支付配置
+│   ├── wechat_pay_api.py   # 微信支付API路由
+│   ├── wechat_pay_utils.py # 微信支付工具类
+│   ├── wechat_auth.py      # 微信登录认证
+│   ├── order_manager.py    # 订单管理
 │   ├── requirements.txt    # Python依赖
-│   ├── start.sh           # 启动脚本
-│   ├── simple_update.py   # 简单更新工具
-│   ├── update_backend.py   # 完整更新工具
-│   ├── gateway_config.json # 配置文件
+│   ├── deploy_guide.md     # 部署指南
+│   ├── wechat_config_template.json # 配置模板
 │   └── README.md          # API网关文档
 ├── src/
 │   ├── components/           # Vue 组件
@@ -205,11 +237,27 @@ PhotoEnhanceAI-web/
 
 ## 🔧 API 接口
 
+### 系统架构
+
+```
+微信小程序"喵喵美颜" 
+    ↓ HTTPS API调用
+API网关服务器 (Flask)
+    ↓ 代理转发
+GPU服务器 (FastAPI + GFPGAN)
+```
+
 ### API网关服务
 
 本项目实现了API网关服务，为微信小程序等外部应用提供HTTPS API接口。网关服务自动代理到基于IP的后端服务，解决小程序只能调用HTTPS接口的限制。
 
 **网关地址**: `https://gongjuxiang.work/api/v1/`
+
+**核心作用**：
+- **HTTPS合规**：为小程序提供HTTPS接口
+- **域名备案**：使用已备案的域名
+- **API中转**：代理转发到GPU服务器的GFPGAN API
+- **支付集成**：集成微信支付功能
 
 ### 微信支付API接口
 
@@ -547,7 +595,10 @@ Content-Type: application/json
 
 ## 📝 开发计划
 
-- [x] 前端界面开发
+### ✅ 已完成功能
+
+#### Web前端
+- [x] 前端界面开发 (Vue 3 + TypeScript)
 - [x] 图片上传功能
 - [x] 图片对比展示
 - [x] 结果下载功能
@@ -558,21 +609,49 @@ Content-Type: application/json
 - [x] AVIF格式支持
 - [x] 实时显示功能
 - [x] 文件大小显示优化
-- [x] API配置统一管理
-- [x] 后端 API 开发
-- [x] 云服务器部署
-- [x] GitHub 访问问题解决方案
-- [x] API网关服务实现
+
+#### API网关服务
+- [x] API网关服务实现 (Flask)
 - [x] HTTPS证书部署
 - [x] 微信小程序兼容性支持
 - [x] 动态配置管理系统
 - [x] 后端地址灵活更新
+- [x] GFPGAN API中转服务
+
+#### 微信支付集成
+- [x] 微信支付API开发
+- [x] 订单管理系统
+- [x] 支付回调处理
+- [x] 用户认证 (openid获取)
+- [x] 支付统计功能
+- [x] 安全配置管理
+
+#### 部署运维
+- [x] 云服务器部署
+- [x] GitHub 访问问题解决方案
+- [x] Nginx反向代理配置
+- [x] SSL证书管理
+### 🚀 未来计划
+
+#### 功能扩展
 - [ ] 更多图片格式支持 (PNG, WebP等)
 - [ ] 用户认证系统
 - [ ] 图片处理历史记录
 - [ ] 移动端适配优化
 - [ ] API限流和监控
 - [ ] 负载均衡优化
+
+#### 微信小程序"喵喵美颜"
+- [ ] 小程序UI优化
+- [ ] 更多美颜功能集成
+- [ ] 用户使用统计
+- [ ] 会员系统开发
+
+#### 技术优化
+- [ ] 数据库迁移 (MySQL/PostgreSQL)
+- [ ] Redis缓存集成
+- [ ] 微服务架构改造
+- [ ] Docker容器化部署
 
 ## ⚙️ 配置化重构
 
