@@ -537,7 +537,7 @@ if __name__ == '__main__':
     import os
     if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
         logger.info("使用SSL证书启动HTTPS服务")
-        app.run(host='0.0.0.0', port=443, ssl_context=(ssl_cert, ssl_key), debug=False)
+        app.run(host='0.0.0.0', port=8443, ssl_context=(ssl_cert, ssl_key), debug=False)
     else:
         logger.warning("SSL证书不存在，使用HTTP服务（仅用于开发）")
         logger.warning("生产环境请配置SSL证书")
