@@ -1,0 +1,8 @@
+{
+  "mch_id": "你的商户号",
+  "appid": "你的小程序APPID", 
+  "secret": "你的小程序Secret",
+  "api_key": "你的微信支付API密钥",
+  "notify_url": "https://your-domain.com/api/wechat/pay/notify/",
+  "cert_dir": "/path/to/certificates"
+}
