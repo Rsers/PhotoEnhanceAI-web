@@ -93,12 +93,29 @@ npm run build
 ```bash
 # 安装 Python 依赖
 pip install fastapi uvicorn python-multipart pillow opencv-python
+
+# 安装API网关依赖
+pip install flask flask-cors requests
+```
+
+#### 配置环境变量
+```bash
+# 设置微信支付环境变量
+export WECHAT_MCH_ID="你的商户号"
+export WECHAT_APPID="你的小程序APPID"
+export WECHAT_SECRET="你的小程序Secret"
+export WECHAT_API_KEY="你的微信支付API密钥"
+export WECHAT_NOTIFY_URL="https://www.gongjuxiang.work/api/wechat/pay/notify/"
 ```
 
 #### 启动后端服务
 ```bash
 # 启动 FastAPI 服务
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# 启动API网关服务（包含微信支付功能）
+cd api-gateway
+python3 app.py
 ```
 
 ### 服务器部署
@@ -193,6 +210,49 @@ PhotoEnhanceAI-web/
 本项目实现了API网关服务，为微信小程序等外部应用提供HTTPS API接口。网关服务自动代理到基于IP的后端服务，解决小程序只能调用HTTPS接口的限制。
 
 **网关地址**: `https://gongjuxiang.work/api/v1/`
+
+### 微信支付API接口
+
+本项目集成了微信小程序支付功能，提供完整的支付流程API。
+
+**微信支付网关地址**: `https://gongjuxiang.work/api/wechat/`
+
+#### 环境变量配置
+
+微信支付功能需要配置以下环境变量：
+
+```bash
+# 微信支付配置
+export WECHAT_MCH_ID="你的商户号"
+export WECHAT_APPID="你的小程序APPID"
+export WECHAT_SECRET="你的小程序Secret"
+export WECHAT_API_KEY="你的微信支付API密钥"
+export WECHAT_NOTIFY_URL="https://www.gongjuxiang.work/api/wechat/pay/notify/"
+```
+
+#### 证书文件配置
+
+微信支付需要以下证书文件，请放置在指定路径：
+
+**证书文件路径**：
+- 项目根目录：`certificates/`
+- API网关目录：`api-gateway/certs/`
+
+**必需证书文件**：
+- `apiclient_cert.pem` - 微信支付证书
+- `apiclient_key.pem` - 微信支付私钥
+- `wechatpay_*.pem` - 微信支付平台证书（可选）
+
+**证书文件获取**：
+1. 登录微信商户平台
+2. 进入"账户中心" -> "API安全"
+3. 下载API证书和私钥
+4. 将证书文件放置在上述路径中
+
+**安全提醒**：
+- 证书文件已添加到 `.gitignore`，不会提交到版本控制
+- 请妥善保管证书文件，不要泄露给他人
+- 生产环境建议使用环境变量管理敏感信息
 
 ### 图片增强处理接口
 ```

@@ -4,17 +4,17 @@ import os
 class WeChatPayConfig:
     """微信支付配置类"""
     
-    # 微信支付商户号 (开发调试用)
-    MCH_ID = "1581082441"
+    # 微信支付商户号 - 从环境变量获取
+    MCH_ID = os.getenv("WECHAT_MCH_ID", "")
     
-    # 小程序APPID (开发调试用)
-    APPID = "wx3b37b90a51e1612d"
+    # 小程序APPID - 从环境变量获取
+    APPID = os.getenv("WECHAT_APPID", "")
     
-    # 小程序Secret (开发调试用)
-    SECRET = "33c46174af0c0a684a0fb026273b7240"
+    # 小程序Secret - 从环境变量获取
+    SECRET = os.getenv("WECHAT_SECRET", "")
     
-    # 微信支付API密钥 (开发调试用)
-    API_KEY = "k8Xp2Aq9LmN5rT7vEwZ1sY4uH6cBnJ3d"
+    # 微信支付API密钥 - 从环境变量获取
+    API_KEY = os.getenv("WECHAT_API_KEY", "")
     
     # 证书目录：优先使用项目根目录的 certificates/，否则使用本地 certs/
     _THIS_DIR = os.path.dirname(__file__)
@@ -34,8 +34,8 @@ class WeChatPayConfig:
     ORDER_QUERY_URL = "https://api.mch.weixin.qq.com/pay/orderquery"
     CLOSE_ORDER_URL = "https://api.mch.weixin.qq.com/pay/closeorder"
     
-    # 支付回调通知URL (开发调试用)
-    NOTIFY_URL = "https://www.gongjuxiang.work/api/wechat/pay/notify/"
+    # 支付回调通知URL - 从环境变量获取
+    NOTIFY_URL = os.getenv("WECHAT_NOTIFY_URL", "https://www.gongjuxiang.work/api/wechat/pay/notify/")
     
     # 交易类型
     TRADE_TYPE_JSAPI = "JSAPI"  # 小程序支付
