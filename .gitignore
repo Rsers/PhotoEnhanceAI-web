@@ -29,10 +29,14 @@ Thumbs.db
 # 日志文件
 *.log
 logs/
+nohup.out
+app.log
 
 # 临时文件
 tmp/
 temp/
+.trash/
+**/.trash/
 
 # 微信支付证书文件 - 敏感信息，不应提交到版本控制
 certificates/
@@ -66,3 +70,22 @@ htmlcov/
 
 # 数据文件 - 包含敏感信息，不应提交到版本控制
 api-gateway/data/
+
+# 配置备份文件
+*.backup
+*.bak
+*.old
+*.orig
+*~
+
+# 部署和运维脚本生成的文件
+*.new
+reload_nginx.sh
+update_nginx_config.sh
+gongjuxiang.work.new
+
+# 打包文件
+*.tar.gz
+*.zip
+*.rar
+dist-package.tar.gz
