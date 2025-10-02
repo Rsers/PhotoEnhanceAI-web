@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-B服务器测试客户端
+GPU服务器测试客户端
 用于测试webhook注册功能
 """
 
@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class BServerClient:
-    """B服务器客户端"""
+    """GPU服务器客户端"""
     
     def __init__(self, gateway_url: str, server_id: str, ip: str, port: int, secret: str):
         self.gateway_url = gateway_url.rstrip('/')
@@ -106,7 +106,7 @@ class BServerClient:
 
 def main():
     """主函数"""
-    parser = argparse.ArgumentParser(description='B服务器测试客户端')
+    parser = argparse.ArgumentParser(description='GPU服务器测试客户端')
     parser.add_argument('action', choices=['register', 'unregister', 'list'], 
                        help='操作: register(注册), unregister(注销), list(列表)')
     parser.add_argument('--gateway', default='https://www.gongjuxiang.work',
@@ -114,9 +114,9 @@ def main():
     parser.add_argument('--server-id', default='B1',
                        help='服务器ID (例如: B1, B2, B3)')
     parser.add_argument('--ip', default='192.168.1.100',
-                       help='B服务器IP地址')
+                       help='GPU服务器IP地址')
     parser.add_argument('--port', type=int, default=8000,
-                       help='B服务器端口')
+                       help='GPU服务器端口')
     parser.add_argument('--secret', default='default-secret-2024',
                        help='预设密码')
     

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-多B服务器管理模块
-支持动态添加/删除B服务器，负载均衡，健康检测
+多GPU服务器管理模块
+支持动态添加/删除GPU服务器，负载均衡，健康检测
 """
 
 import os
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET', 'default-secret-2024')
 
 class BackendServer:
-    """B服务器信息"""
+    """GPU服务器信息"""
     def __init__(self, server_id: str, ip: str, port: int):
         self.server_id = server_id
         self.ip = ip
@@ -74,7 +74,7 @@ class BackendManager:
                             port=server_data['port']
                         )
                         self.servers[server.server_id] = server
-                logger.info(f"加载了 {len(self.servers)} 台B服务器")
+                logger.info(f"加载了 {len(self.servers)} 台GPU服务器")
         except Exception as e:
             logger.error(f"加载服务器列表失败: {e}")
     
@@ -94,7 +94,7 @@ class BackendManager:
         return secret == WEBHOOK_SECRET
     
     def add_or_update_server(self, server_id: str, ip: str, port: int, secret: str) -> bool:
-        """添加或更新B服务器"""
+        """添加或更新GPU服务器"""
         try:
             # 验证密码
             if not self.verify_secret(secret):
@@ -129,7 +129,7 @@ class BackendManager:
             return False
     
     def remove_server(self, server_id: str) -> bool:
-        """删除B服务器"""
+        """删除GPU服务器"""
         try:
             if server_id in self.servers:
                 del self.servers[server_id]
@@ -155,7 +155,7 @@ class BackendManager:
         healthy_servers = [s for s in self.servers.values() if s.is_healthy]
         
         if not healthy_servers:
-            logger.warning("没有可用的B服务器")
+            logger.warning("没有可用的GPU服务器")
             return None
         
         # 顺序选择服务器（轮询）

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Webhook路由
-用于B服务器注册和管理
+用于GPU服务器注册和管理
 """
 
 import logging
@@ -16,7 +16,7 @@ def register_webhook_routes(app):
     
     @app.route('/webhook/register', methods=['POST'])
     def webhook_register():
-        """B服务器注册接口"""
+        """GPU服务器注册接口"""
         try:
             data = request.get_json()
             if not data:
@@ -54,7 +54,7 @@ def register_webhook_routes(app):
     
     @app.route('/webhook/unregister', methods=['POST'])
     def webhook_unregister():
-        """B服务器注销接口"""
+        """GPU服务器注销接口"""
         try:
             data = request.get_json()
             if not data:

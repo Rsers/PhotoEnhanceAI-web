@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 API网关配置文件
-支持动态修改后端服务地址和多B服务器管理
+支持动态修改后端服务地址和多GPU服务器管理
 """
 
 import os
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # 默认配置
 DEFAULT_CONFIG = {
-    "backend_api_base": None,  # 不再硬编码IP，由B服务器动态提供
+    "backend_api_base": None,  # 不再硬编码IP，由GPU服务器动态提供
     "backend_timeout": 300,
     "gateway_port": 443,
     "max_file_size": 100 * 1024 * 1024,  # 100MB
@@ -23,10 +23,10 @@ DEFAULT_CONFIG = {
         "status": "/api/v1/status",
         "download": "/api/v1/download"
     },
-    # 多B服务器配置
+    # 多GPU服务器配置
     "multi_backend": {
-        "enabled": True,  # 是否启用多B服务器模式
-        "fallback_to_default": False,  # 没有B服务器时不回退，直接报错
+        "enabled": True,  # 是否启用多GPU服务器模式
+        "fallback_to_default": False,  # 没有GPU服务器时不回退，直接报错
     }
 }
 
@@ -79,15 +79,15 @@ class GatewayConfig:
         return self.backend_manager
     
     def get_backend_url(self) -> Optional[str]:
-        """获取后端服务地址（支持多B服务器）"""
-        # 检查是否启用多B服务器模式
+        """获取后端服务地址（支持多GPU服务器）"""
+        # 检查是否启用多GPU服务器模式
         if not self.config.get("multi_backend", {}).get("enabled", False):
-            # 如果禁用了多B服务器模式，检查是否有配置的默认地址
+            # 如果禁用了多GPU服务器模式，检查是否有配置的默认地址
             default_url = self.config.get("backend_api_base")
             if default_url:
                 return default_url
             else:
-                logger.error("多B服务器模式已禁用且未配置默认后端地址")
+                logger.error("多GPU服务器模式已禁用且未配置默认后端地址")
                 return None
         
         # 尝试从backend_manager获取服务器
@@ -95,20 +95,20 @@ class GatewayConfig:
         if backend_manager:
             selected_server = backend_manager.get_next_server()
             if selected_server:
-                logger.debug(f"使用B服务器: {selected_server.server_id} ({selected_server.ip})")
+                logger.debug(f"使用GPU服务器: {selected_server.server_id} ({selected_server.ip})")
                 return selected_server.url
         
-        # 没有可用的B服务器，检查是否回退到默认配置
+        # 没有可用的GPU服务器，检查是否回退到默认配置
         if self.config.get("multi_backend", {}).get("fallback_to_default", False):
             default_url = self.config.get("backend_api_base")
             if default_url:
-                logger.warning("没有可用的B服务器，回退到默认配置")
+                logger.warning("没有可用的GPU服务器，回退到默认配置")
                 return default_url
             else:
-                logger.error("没有可用的B服务器且未配置默认地址")
+                logger.error("没有可用的GPU服务器且未配置默认地址")
                 return None
         else:
-            logger.error("没有可用的B服务器且未启用回退模式")
+            logger.error("没有可用的GPU服务器且未启用回退模式")
             return None
     
     def get_all_backend_urls(self) -> List[str]:
@@ -141,7 +141,7 @@ class GatewayConfig:
             return False
     
     def enable_multi_backend(self, enabled: bool = True) -> bool:
-        """启用/禁用多B服务器模式"""
+        """启用/禁用多GPU服务器模式"""
         try:
             if "multi_backend" not in self.config:
                 self.config["multi_backend"] = {}
@@ -151,11 +151,11 @@ class GatewayConfig:
             
             if success:
                 status = "启用" if enabled else "禁用"
-                logger.info(f"多B服务器模式已{status}")
+                logger.info(f"多GPU服务器模式已{status}")
             
             return success
         except Exception as e:
-            logger.error(f"设置多B服务器模式失败: {e}")
+            logger.error(f"设置多GPU服务器模式失败: {e}")
             return False
     
     def set_fallback_to_default(self, fallback: bool = True) -> bool:
@@ -189,7 +189,7 @@ class GatewayConfig:
         return self.config.get("supported_endpoints", DEFAULT_CONFIG["supported_endpoints"])
     
     def is_multi_backend_enabled(self) -> bool:
-        """检查是否启用多B服务器模式"""
+        """检查是否启用多GPU服务器模式"""
         return self.config.get("multi_backend", {}).get("enabled", False)
     
     def is_fallback_enabled(self) -> bool:

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 API网关服务
-为微信小程序提供HTTPS API接口，支持多B服务器负载均衡
+为微信小程序提供HTTPS API接口，支持多GPU服务器负载均衡
 """
 
 from flask import Flask, request, jsonify, send_file
@@ -15,7 +15,7 @@ from urllib.parse import urljoin
 import logging
 from config import config
 
-# 导入多B服务器管理模块
+# 导入多GPU服务器管理模块
 from backend_manager import backend_manager
 from webhook_routes import register_webhook_routes
 
@@ -49,7 +49,7 @@ wechat_auth = WeChatAuth()
 @app.route('/api/v1/enhance', methods=['POST'])
 def enhance_image():
     """
-    图片增强API - 支持多B服务器负载均衡
+    图片增强API - 支持多GPU服务器负载均衡
     """
     try:
         logger.info("收到图片增强请求")
@@ -107,7 +107,7 @@ def enhance_image():
 @app.route('/api/v1/status/<task_id>', methods=['GET'])
 def get_task_status(task_id):
     """
-    查询任务状态API - 支持多B服务器负载均衡
+    查询任务状态API - 支持多GPU服务器负载均衡
     """
     try:
         logger.info(f"查询任务状态: {task_id}")
@@ -142,7 +142,7 @@ def get_task_status(task_id):
 @app.route('/api/v1/download/<task_id>', methods=['GET'])
 def download_result(task_id):
     """
-    下载处理结果API - 支持多B服务器负载均衡
+    下载处理结果API - 支持多GPU服务器负载均衡
     """
     try:
         logger.info(f"下载任务结果: {task_id}")
@@ -230,7 +230,7 @@ def api_info():
     return jsonify({
         'name': 'PhotoEnhance API Gateway',
         'version': '1.0.0',
-        'description': '为微信小程序提供HTTPS API接口，支持多B服务器负载均衡',
+        'description': '为微信小程序提供HTTPS API接口，支持多GPU服务器负载均衡',
         'endpoints': {
             'enhance': '/api/v1/enhance',
             'status': '/api/v1/status/{task_id}',
@@ -293,7 +293,7 @@ def update_backend_config():
 @app.route('/api/v1/config/multi-backend', methods=['POST'])
 def update_multi_backend_config():
     """
-    更新多B服务器配置接口
+    更新多GPU服务器配置接口
     """
     try:
         data = request.get_json()
@@ -303,15 +303,15 @@ def update_multi_backend_config():
         success = True
         messages = []
         
-        # 启用/禁用多B服务器模式
+        # 启用/禁用多GPU服务器模式
         if 'enabled' in data:
             enabled = bool(data['enabled'])
             if config.enable_multi_backend(enabled):
                 status = "启用" if enabled else "禁用"
-                messages.append(f"多B服务器模式已{status}")
+                messages.append(f"多GPU服务器模式已{status}")
             else:
                 success = False
-                messages.append("设置多B服务器模式失败")
+                messages.append("设置多GPU服务器模式失败")
         
         # 设置回退模式
         if 'fallback_to_default' in data:
@@ -337,7 +337,7 @@ def update_multi_backend_config():
             }), 500
             
     except Exception as e:
-        logger.error(f"更新多B服务器配置时出错: {str(e)}")
+        logger.error(f"更新多GPU服务器配置时出错: {str(e)}")
         return jsonify({'error': '服务器内部错误'}), 500
 
 # ==================== 微信认证相关API ====================
@@ -619,7 +619,7 @@ def internal_error(error):
 
 if __name__ == '__main__':
     logger.info("启动API网关服务...")
-    logger.info(f"多B服务器模式: {'启用' if config.is_multi_backend_enabled() else '禁用'}")
+    logger.info(f"多GPU服务器模式: {'启用' if config.is_multi_backend_enabled() else '禁用'}")
     logger.info("使用HTTPS协议，端口443")
     
     # 配置SSL证书路径

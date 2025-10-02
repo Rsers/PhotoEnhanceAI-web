@@ -1,9 +1,9 @@
-# 多B服务器管理系统
+# 多GPU服务器管理系统
 
 ## 概述
 
-实现A服务器（API网关）对多台B服务器（GPU服务器）的动态管理，支持：
-- B服务器通过webhook主动注册IP地址
+实现A服务器（API网关）对多台GPU服务器（GPU服务器）的动态管理，支持：
+- GPU服务器通过webhook主动注册IP地址
 - 预设密码验证机制
 - 顺序负载均衡（B1→B2→B3→B1...）
 - 自动健康检测（30秒间隔，3次失败标记为不可用）
@@ -13,19 +13,19 @@
 
 ```
 A服务器 (API网关)
-├── backend_manager.py - B服务器管理核心
+├── backend_manager.py - GPU服务器管理核心
 ├── webhook_routes.py - Webhook路由
 ├── app.py - 主应用（需添加负载均衡逻辑）
 └── config.py - 配置管理
 
-B服务器 (GPU服务器)
+GPU服务器 (GPU服务器)
 └── test_b_client.py - 测试客户端示例
 ```
 
 ## 核心功能
 
-### 1. B服务器注册
-- B服务器启动时主动调用A服务器webhook
+### 1. GPU服务器注册
+- GPU服务器启动时主动调用A服务器webhook
 - 携带服务器ID、IP、端口和预设密码
 - A服务器验证密码后添加到服务器列表
 
@@ -69,7 +69,7 @@ export WEBHOOK_SECRET="your-secret-password-2024"
 
 ## API端点
 
-### 1. 注册B服务器
+### 1. 注册GPU服务器
 
 ```http
 POST /webhook/register
@@ -94,7 +94,7 @@ Content-Type: application/json
 }
 ```
 
-### 2. 注销B服务器
+### 2. 注销GPU服务器
 
 ```http
 POST /webhook/unregister
@@ -186,7 +186,7 @@ if selected_server:
     logger.info(f"使用服务器: {selected_server.server_id} ({selected_server.ip})")
 else:
     backend_url = BACKEND_API_BASE
-    logger.warning("没有可用的B服务器，使用默认配置")
+    logger.warning("没有可用的GPU服务器，使用默认配置")
 ```
 
 同样修改`get_task_status`和`download_result`函数。
@@ -203,9 +203,9 @@ export WEBHOOK_SECRET="your-secret-password-2024"
 sudo systemctl restart api-gateway
 ```
 
-## B服务器端实现
+## GPU服务器端实现
 
-B服务器需要在启动时调用webhook注册：
+GPU服务器需要在启动时调用webhook注册：
 
 ```python
 import requests
@@ -232,9 +232,9 @@ register_to_gateway()
            ↓
     backend_manager.get_next_server()
            ↓
-    选择健康的B服务器（顺序轮询）
+    选择健康的GPU服务器（顺序轮询）
            ↓
-    转发请求到选中的B服务器
+    转发请求到选中的GPU服务器
            ↓
     返回结果给用户
 ```
@@ -244,7 +244,7 @@ register_to_gateway()
 ```
 启动健康检测线程（如果有服务器）
     ↓
-每30秒检查所有B服务器
+每30秒检查所有GPU服务器
     ↓
 访问 /health 端点
     ↓
@@ -258,17 +258,17 @@ register_to_gateway()
 
 ## 故障处理
 
-### B服务器故障
+### GPU服务器故障
 - 自动检测并标记为不健康
 - 负载均衡自动跳过故障服务器
 - 服务器恢复后自动重新上线
 
-### 所有B服务器故障
+### 所有GPU服务器故障
 - 回退到默认配置（config.py中的backend_api_base）
 - 记录警告日志
 
 ### IP地址变化
-- B服务器重新调用注册接口
+- GPU服务器重新调用注册接口
 - A服务器自动更新IP地址
 - 无需重启服务
 
@@ -303,17 +303,17 @@ tail -f /path/to/api-gateway.log
 
 ## 常见问题
 
-### Q: 如何查看当前有哪些B服务器？
+### Q: 如何查看当前有哪些GPU服务器？
 A: 使用测试客户端的list命令或访问`/webhook/servers`端点
 
-### Q: B服务器IP变化了怎么办？
+### Q: GPU服务器IP变化了怎么办？
 A: 重新调用注册接口，传入新的IP即可
 
-### Q: 如何暂时禁用某台B服务器？
+### Q: 如何暂时禁用某台GPU服务器？
 A: 调用注销接口将其移除
 
 ### Q: 健康检测失败会怎样？
 A: 3次失败后标记为不健康，负载均衡会自动跳过
 
-### Q: 没有B服务器时会怎样？
+### Q: 没有GPU服务器时会怎样？
 A: 回退到config.py中的默认配置

@@ -24,11 +24,11 @@
 - **订单管理**：本地订单存储和状态跟踪
 - **支付统计**：订单数据分析和统计功能
 
-### 4. 🔧 多B服务器管理系统
-- **动态服务器注册**：B服务器通过webhook主动注册IP地址
-- **负载均衡**：支持多台B服务器顺序负载均衡
-- **健康检测**：自动检测B服务器状态，故障自动切换
-- **IP动态更新**：B服务器IP变化时自动更新配置
+### 4. 🔧 多GPU服务器管理系统
+- **动态服务器注册**：GPU服务器通过webhook主动注册IP地址
+- **负载均衡**：支持多台GPU服务器顺序负载均衡
+- **健康检测**：自动检测GPU服务器状态，故障自动切换
+- **IP动态更新**：GPU服务器IP变化时自动更新配置
 
 > **🚨 部署前必读**：
 > - 请确保服务器已开放 **8000 端口**，否则前端无法正常连接后端 API 服务
@@ -36,17 +36,17 @@
 > 
 > 详细配置方法请查看 [服务器部署](#服务器部署) 和 [故障排除](#故障排除) 部分。
 
-## 🔧 多B服务器管理系统
+## 🔧 多GPU服务器管理系统
 
 ### 系统架构
 
 ```
 A服务器 (API网关)
-├── 图片处理API (负载均衡到B服务器)
+├── 图片处理API (负载均衡到GPU服务器)
 │   ├── /api/v1/enhance - 图片增强
 │   ├── /api/v1/status/{task_id} - 查询任务状态
 │   └── /api/v1/download/{task_id} - 下载处理结果
-├── 微信相关API (直接处理，不涉及B服务器)
+├── 微信相关API (直接处理，不涉及GPU服务器)
 │   ├── 微信支付API
 │   ├── 微信授权API
 │   └── 微信小程序接口
@@ -55,19 +55,19 @@ A服务器 (API网关)
 │   ├── /api/v1/info - API信息
 │   └── /api/v1/config - 配置管理
 └── Webhook管理
-    ├── /webhook/register - B服务器注册
-    ├── /webhook/unregister - B服务器注销
+    ├── /webhook/register - GPU服务器注册
+    ├── /webhook/unregister - GPU服务器注销
     └── /webhook/servers - 查询服务器列表
 
-B服务器 (GPU服务器)
-└── B服务器客户端 (test_b_client.py)
+GPU服务器 (GPU服务器)
+└── GPU服务器客户端 (test_b_client.py)
 ```
 
-### B服务器Webhook调用
+### GPU服务器Webhook调用
 
-#### 1. 注册B服务器
+#### 1. 注册GPU服务器
 
-B服务器启动时需要主动调用A服务器的注册接口：
+GPU服务器启动时需要主动调用A服务器的注册接口：
 
 ```bash
 # 使用测试客户端注册
@@ -102,7 +102,7 @@ curl -X POST https://www.gongjuxiang.work/webhook/register \
 }
 ```
 
-#### 2. B服务器部署配置
+#### 2. GPU服务器部署配置
 
 **环境变量设置**：
 ```bash
@@ -118,7 +118,7 @@ import requests
 import os
 
 def register_to_gateway():
-    """B服务器启动时注册到A服务器"""
+    """GPU服务器启动时注册到A服务器"""
     url = "https://www.gongjuxiang.work/webhook/register"
     data = {
         "server_id": os.getenv('SERVER_ID', 'B1'),
@@ -156,7 +156,7 @@ def get_current_ip():
     except Exception:
         return "127.0.0.1"
 
-# B服务器启动时调用
+# GPU服务器启动时调用
 if __name__ == '__main__':
     register_to_gateway()
 ```
@@ -195,7 +195,7 @@ sudo systemctl start b-server-client
 
 #### 4. IP地址变化处理
 
-当B服务器IP地址发生变化时，需要重新注册：
+当GPU服务器IP地址发生变化时，需要重新注册：
 
 ```python
 def update_ip_on_change():
@@ -212,9 +212,9 @@ def update_ip_on_change():
             print("IP地址更新失败")
 ```
 
-#### 5. 注销B服务器
+#### 5. 注销GPU服务器
 
-B服务器关闭时需要注销：
+GPU服务器关闭时需要注销：
 
 ```bash
 # 使用测试客户端注销
@@ -253,15 +253,15 @@ curl -X POST https://www.gongjuxiang.work/webhook/unregister \
 # 设置共享密钥
 export WEBHOOK_SECRET="your-secret-password-2024"
 
-# 启用多B服务器模式
+# 启用多GPU服务器模式
 curl -X POST https://www.gongjuxiang.work/api/v1/config/multi-backend \
   -H "Content-Type: application/json" \
   -d '{"enabled": true}'
 ```
 
-#### 查看B服务器状态
+#### 查看GPU服务器状态
 ```bash
-# 查看所有B服务器
+# 查看所有GPU服务器
 python3 test_b_client.py list \
   --gateway https://www.gongjuxiang.work \
   --secret your-secret-password-2024
@@ -272,25 +272,25 @@ curl "https://www.gongjuxiang.work/webhook/servers?secret=your-secret-password-2
 
 ### 故障处理
 
-#### B服务器故障
+#### GPU服务器故障
 - **自动检测**：30秒内检测到服务器离线
 - **负载转移**：自动停止向故障服务器分发请求
 - **自动恢复**：服务器恢复后自动重新加入负载均衡
 
-#### 所有B服务器故障
+#### 所有GPU服务器故障
 - **服务降级**：返回503错误"服务暂时不可用"
 - **用户提示**：提示用户稍后重试
-- **自动恢复**：B服务器上线后立即恢复服务
+- **自动恢复**：GPU服务器上线后立即恢复服务
 
 ### 安全机制
 
 #### 身份验证
-- **预设密码**：B服务器调用时在请求体中携带密码
+- **预设密码**：GPU服务器调用时在请求体中携带密码
 - **HTTPS传输**：所有通信都通过HTTPS加密
 - **密码验证**：A服务器验证密码后才允许注册
 
 #### 访问控制
-- **Webhook端点**：只有知道密码的B服务器可以调用
+- **Webhook端点**：只有知道密码的GPU服务器可以调用
 - **管理端点**：支持可选的密码验证
 - **日志记录**：记录所有注册和注销操作
 
@@ -400,7 +400,7 @@ export WECHAT_SECRET="你的小程序Secret"
 export WECHAT_API_KEY="你的微信支付API密钥"
 export WECHAT_NOTIFY_URL="https://www.gongjuxiang.work/api/wechat/pay/notify/"
 
-# 设置多B服务器管理环境变量
+# 设置多GPU服务器管理环境变量
 export WEBHOOK_SECRET="your-secret-password-2024"
 ```
 
@@ -409,12 +409,12 @@ export WEBHOOK_SECRET="your-secret-password-2024"
 # 启动 FastAPI 服务
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-# 启动API网关服务（包含微信支付功能和多B服务器管理）
+# 启动API网关服务（包含微信支付功能和多GPU服务器管理）
 cd api-gateway
 python3 app.py
 ```
 
-### B服务器部署
+### GPU服务器部署
 
 #### 1. 安装依赖
 ```bash
@@ -429,7 +429,7 @@ export SHARED_SECRET="your-secret-password-2024"
 export PORT="8000"
 ```
 
-#### 3. 运行B服务器客户端
+#### 3. 运行GPU服务器客户端
 ```bash
 python3 test_b_client.py register --server-id B1 --ip 192.168.1.100
 ```
@@ -452,9 +452,9 @@ PhotoEnhanceAI-web/
 ├── api-gateway/             # API网关服务 (Flask)
 │   ├── app.py              # Flask网关应用主文件
 │   ├── config.py           # 配置管理模块
-│   ├── backend_manager.py  # B服务器管理核心
+│   ├── backend_manager.py  # GPU服务器管理核心
 │   ├── webhook_routes.py   # Webhook路由处理
-│   ├── test_b_client.py    # B服务器测试客户端
+│   ├── test_b_client.py    # GPU服务器测试客户端
 │   ├── wechat_pay_config.py # 微信支付配置
 │   ├── wechat_pay_api.py   # 微信支付API路由
 │   ├── wechat_pay_utils.py # 微信支付工具类
@@ -504,7 +504,7 @@ PhotoEnhanceAI-web/
     ↓ HTTPS API调用
 A服务器 (API网关)
     ↓ 负载均衡
-B服务器集群 (FastAPI + GFPGAN)
+GPU服务器集群 (FastAPI + GFPGAN)
     ├── B1: 192.168.1.100:8000
     ├── B2: 192.168.1.101:8000
     └── B3: 192.168.1.102:8000
@@ -512,16 +512,16 @@ B服务器集群 (FastAPI + GFPGAN)
 
 ### API网关服务
 
-本项目实现了API网关服务，为微信小程序等外部应用提供HTTPS API接口。网关服务支持多B服务器负载均衡，解决小程序只能调用HTTPS接口的限制。
+本项目实现了API网关服务，为微信小程序等外部应用提供HTTPS API接口。网关服务支持多GPU服务器负载均衡，解决小程序只能调用HTTPS接口的限制。
 
 **网关地址**: `https://gongjuxiang.work/api/v1/`
 
 **核心作用**：
 - **HTTPS合规**：为小程序提供HTTPS接口
 - **域名备案**：使用已备案的域名
-- **负载均衡**：自动分发请求到多个B服务器
+- **负载均衡**：自动分发请求到多个GPU服务器
 - **支付集成**：集成微信支付功能
-- **动态管理**：支持B服务器动态注册和管理
+- **动态管理**：支持GPU服务器动态注册和管理
 
 ### 微信支付API接口
 
@@ -541,7 +541,7 @@ export WECHAT_SECRET="你的小程序Secret"
 export WECHAT_API_KEY="你的微信支付API密钥"
 export WECHAT_NOTIFY_URL="https://www.gongjuxiang.work/api/wechat/pay/notify/"
 
-# 多B服务器管理配置
+# 多GPU服务器管理配置
 export WEBHOOK_SECRET="your-secret-password-2024"
 ```
 
@@ -624,7 +624,7 @@ GET /api/v1/info
 - version: 版本号
 - description: 描述信息
 - endpoints: 支持的接口列表
-- backend_servers: B服务器统计信息
+- backend_servers: GPU服务器统计信息
 - config_info: 配置信息
 ```
 
@@ -638,8 +638,8 @@ GET /api/v1/config
 - timeout: 超时时间
 - max_file_size: 最大文件大小
 - endpoints: 支持的端点
-- multi_backend: 多B服务器配置
-- backend_servers: B服务器统计信息
+- multi_backend: 多GPU服务器配置
+- backend_servers: GPU服务器统计信息
 ```
 
 ### 更新后端地址接口
@@ -656,13 +656,13 @@ Content-Type: application/json
 - timestamp: 更新时间戳
 ```
 
-### 多B服务器配置接口
+### 多GPU服务器配置接口
 ```
 POST /api/v1/config/multi-backend
 Content-Type: application/json
 
 参数:
-- enabled: 是否启用多B服务器模式
+- enabled: 是否启用多GPU服务器模式
 - fallback_to_default: 是否回退到默认配置
 
 返回:
@@ -674,7 +674,7 @@ Content-Type: application/json
 
 ### Webhook接口
 
-#### B服务器注册接口
+#### GPU服务器注册接口
 ```
 POST /webhook/register
 Content-Type: application/json
@@ -693,7 +693,7 @@ Content-Type: application/json
 - port: 服务器端口
 ```
 
-#### B服务器注销接口
+#### GPU服务器注销接口
 ```
 POST /webhook/unregister
 Content-Type: application/json
@@ -729,7 +729,7 @@ GET /webhook/servers?secret=your-secret-password-2024
 - **文件上传**: 支持最大100MB文件上传
 - **超时设置**: 处理超时时间5分钟
 - **错误处理**: 统一的错误响应格式
-- **负载均衡**: 自动在多个B服务器间分发请求
+- **负载均衡**: 自动在多个GPU服务器间分发请求
 
 ## 🎨 界面设计
 
@@ -843,9 +843,9 @@ GET /webhook/servers?secret=your-secret-password-2024
    curl http://your-server-ip:8000/api/v1/status/test
    ```
 
-### B服务器管理问题
+### GPU服务器管理问题
 
-#### 问题：B服务器注册失败
+#### 问题：GPU服务器注册失败
 **症状**：调用注册接口返回401错误或注册失败
 
 **解决方案**：
@@ -854,7 +854,7 @@ GET /webhook/servers?secret=your-secret-password-2024
    # 检查A服务器密码设置
    echo $WEBHOOK_SECRET
    
-   # 检查B服务器密码设置
+   # 检查GPU服务器密码设置
    echo $SHARED_SECRET
    ```
 
@@ -876,17 +876,17 @@ GET /webhook/servers?secret=your-secret-password-2024
 **症状**：请求总是转发到同一台服务器
 
 **解决方案**：
-1. **检查多B服务器模式**：
+1. **检查多GPU服务器模式**：
    ```bash
-   # 启用多B服务器模式
+   # 启用多GPU服务器模式
    curl -X POST https://www.gongjuxiang.work/api/v1/config/multi-backend \
      -H "Content-Type: application/json" \
      -d '{"enabled": true}'
    ```
 
-2. **检查B服务器状态**：
+2. **检查GPU服务器状态**：
    ```bash
-   # 查看B服务器健康状态
+   # 查看GPU服务器健康状态
    python3 test_b_client.py list --secret your-secret
    ```
 
@@ -976,11 +976,11 @@ GET /webhook/servers?secret=your-secret-password-2024
 - **实现**: Flask网关 + nginx反向代理 + Let's Encrypt证书
 - **效果**: 小程序可以合规调用 `https://gongjuxiang.work/api/v1/` 接口
 
-### 多B服务器管理优化
+### 多GPU服务器管理优化
 - **问题**: 后端服务IP地址经常变更，需要手动修改配置
-- **解决方案**: 实现多B服务器管理系统，支持动态注册和负载均衡
+- **解决方案**: 实现多GPU服务器管理系统，支持动态注册和负载均衡
 - **实现**: Webhook注册 + 负载均衡 + 健康检测 + 动态配置
-- **效果**: B服务器可以动态注册IP地址，A服务器自动负载均衡，无需手动配置
+- **效果**: GPU服务器可以动态注册IP地址，A服务器自动负载均衡，无需手动配置
 
 ## 📝 开发计划
 
@@ -1006,7 +1006,7 @@ GET /webhook/servers?secret=your-secret-password-2024
 - [x] 动态配置管理系统
 - [x] 后端地址灵活更新
 - [x] GFPGAN API中转服务
-- [x] 多B服务器管理系统
+- [x] 多GPU服务器管理系统
 - [x] 负载均衡功能
 - [x] 健康检测机制
 - [x] Webhook注册管理
@@ -1024,7 +1024,7 @@ GET /webhook/servers?secret=your-secret-password-2024
 - [x] GitHub 访问问题解决方案
 - [x] Nginx反向代理配置
 - [x] SSL证书管理
-- [x] 多B服务器部署方案
+- [x] 多GPU服务器部署方案
 
 ### 🚀 未来计划
 
@@ -1131,9 +1131,9 @@ const apiUrl = getApiUrl(API_CONFIG.ENDPOINTS.ENHANCE) // 获取完整API URL
 
 ## 🔧 动态配置管理
 
-### 多B服务器管理
+### 多GPU服务器管理
 
-当需要添加或管理B服务器时，可以通过以下方式：
+当需要添加或管理GPU服务器时，可以通过以下方式：
 
 #### 方式1：使用测试客户端（推荐）
 
@@ -1141,18 +1141,18 @@ const apiUrl = getApiUrl(API_CONFIG.ENDPOINTS.ENHANCE) // 获取完整API URL
 # 进入API网关目录
 cd /home/ubuntu/PhotoEnhanceAI-web/api-gateway
 
-# 注册B服务器
+# 注册GPU服务器
 python3 test_b_client.py register \
   --server-id B1 \
   --ip 192.168.1.100 \
   --port 8000 \
   --secret your-secret-password-2024
 
-# 查看B服务器状态
+# 查看GPU服务器状态
 python3 test_b_client.py list \
   --secret your-secret-password-2024
 
-# 注销B服务器
+# 注销GPU服务器
 python3 test_b_client.py unregister \
   --server-id B1 \
   --secret your-secret-password-2024
@@ -1161,7 +1161,7 @@ python3 test_b_client.py unregister \
 #### 方式2：API接口管理
 
 ```bash
-# 注册B服务器
+# 注册GPU服务器
 curl -X POST https://www.gongjuxiang.work/webhook/register \
   -H "Content-Type: application/json" \
   -d '{
@@ -1171,25 +1171,25 @@ curl -X POST https://www.gongjuxiang.work/webhook/register \
     "secret": "your-secret-password-2024"
   }'
 
-# 查看B服务器状态
+# 查看GPU服务器状态
 curl "https://www.gongjuxiang.work/webhook/servers?secret=your-secret-password-2024"
 
-# 启用多B服务器模式
+# 启用多GPU服务器模式
 curl -X POST https://www.gongjuxiang.work/api/v1/config/multi-backend \
   -H "Content-Type: application/json" \
   -d '{"enabled": true}'
 ```
 
-#### 方式3：B服务器自动注册
+#### 方式3：GPU服务器自动注册
 
-B服务器启动时自动注册：
+GPU服务器启动时自动注册：
 
 ```python
 import requests
 import os
 
 def register_to_gateway():
-    """B服务器启动时注册到A服务器"""
+    """GPU服务器启动时注册到A服务器"""
     url = "https://www.gongjuxiang.work/webhook/register"
     data = {
         "server_id": os.getenv('SERVER_ID', 'B1'),
@@ -1201,7 +1201,7 @@ def register_to_gateway():
     response = requests.post(url, json=data, timeout=10)
     return response.json()
 
-# B服务器启动时调用
+# GPU服务器启动时调用
 register_to_gateway()
 ```
 
@@ -1222,7 +1222,7 @@ curl https://gongjuxiang.work/api/v1/health
 ### 配置验证
 
 ```bash
-# 检查B服务器状态
+# 检查GPU服务器状态
 python3 test_b_client.py list --secret your-secret-password-2024
 
 # 查看API网关信息
@@ -1235,11 +1235,11 @@ curl -X POST https://gongjuxiang.work/api/v1/enhance \
 
 ### 使用场景
 
-1. **B服务器部署**：新部署B服务器时自动注册
-2. **IP地址变更**：B服务器IP变化时自动更新
-3. **负载均衡**：多台B服务器分担处理压力
-4. **故障转移**：B服务器故障时自动切换
-5. **动态扩容**：根据需要动态添加B服务器
+1. **GPU服务器部署**：新部署GPU服务器时自动注册
+2. **IP地址变更**：GPU服务器IP变化时自动更新
+3. **负载均衡**：多台GPU服务器分担处理压力
+4. **故障转移**：GPU服务器故障时自动切换
+5. **动态扩容**：根据需要动态添加GPU服务器
 
 ## 📄 许可证
 
