@@ -51,6 +51,7 @@ class BackendManager:
         self.current_index = 0
         self.health_check_interval = 30  # 30秒检测间隔
         self.max_fail_count = 3  # 3次失败后标记为不可用
+        self.auto_cleanup_threshold = 10  # 10次失败后自动删除服务器记录
         self.health_check_thread = None
         self.running = False
         
@@ -219,6 +220,11 @@ class BackendManager:
                 if server.is_healthy:
                     server.is_healthy = False
                     logger.error(f"服务器 {server.server_id} 已标记为不可用")
+            
+            # 如果失败次数超过自动清理阈值，自动删除服务器记录
+            if server.fail_count >= self.auto_cleanup_threshold:
+                logger.warning(f"服务器 {server.server_id} 失败次数达到 {server.fail_count} 次，自动删除服务器记录")
+                self.remove_server(server.server_id)
     
     def health_check_loop(self):
         """健康检查循环"""
@@ -267,6 +273,9 @@ class BackendManager:
             "healthy_servers": healthy,
             "unhealthy_servers": unhealthy,
             "health_check_running": self.running,
+            "health_check_interval": self.health_check_interval,
+            "max_fail_count": self.max_fail_count,
+            "auto_cleanup_threshold": self.auto_cleanup_threshold,
             "servers": self.get_all_servers()
         }
 
