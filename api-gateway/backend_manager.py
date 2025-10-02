@@ -49,9 +49,9 @@ class BackendManager:
     def __init__(self):
         self.servers: Dict[str, BackendServer] = {}
         self.current_index = 0
-        self.health_check_interval = 30  # 30秒检测间隔
-        self.max_fail_count = 3  # 3次失败后标记为不可用
-        self.auto_cleanup_threshold = 10  # 10次失败后自动删除服务器记录
+        self.health_check_interval = 3  # 3秒检测间隔
+        self.max_fail_count = 1  # 1次失败后标记为不可用
+        self.auto_cleanup_threshold = 2  # 2次失败后自动删除服务器记录
         self.health_check_thread = None
         self.running = False
         
