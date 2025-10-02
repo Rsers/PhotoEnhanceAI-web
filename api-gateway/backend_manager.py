@@ -17,7 +17,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 # 预设密码
-WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET', 'default-secret-2024')
+WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET', 'gpu-server-register-to-api-gateway-2024')
 
 class BackendServer:
     """GPU服务器信息"""
@@ -93,25 +93,49 @@ class BackendManager:
         """验证密码"""
         return secret == WEBHOOK_SECRET
     
-    def add_or_update_server(self, server_id: str, ip: str, port: int, secret: str) -> bool:
-        """添加或更新GPU服务器"""
+    def generate_server_id(self) -> str:
+        """自动生成服务器ID"""
+        # 查找下一个可用的GPU编号
+        existing_ids = set(self.servers.keys())
+        for i in range(1, 1000):  # 最多支持999台服务器
+            server_id = f"GPU-{i:03d}"
+            if server_id not in existing_ids:
+                return server_id
+        raise Exception("服务器数量已达上限")
+    
+    def add_or_update_server(self, ip: str, port: int, secret: str, server_id: str = None) -> tuple[bool, str]:
+        """添加或更新GPU服务器，返回(是否成功, server_id)"""
         try:
             # 验证密码
             if not self.verify_secret(secret):
-                logger.warning(f"服务器 {server_id} 密码验证失败")
-                return False
+                logger.warning(f"服务器密码验证失败")
+                return False, ""
             
-            if server_id in self.servers:
+            # 检查是否已存在相同IP的服务器
+            existing_server = None
+            for sid, server in self.servers.items():
+                if server.ip == ip and server.port == port:
+                    existing_server = sid
+                    break
+            
+            if existing_server:
                 # 更新现有服务器
-                server = self.servers[server_id]
+                server = self.servers[existing_server]
                 server.ip = ip
                 server.port = port
                 server.url = f"http://{ip}:{port}"
                 server.is_healthy = True
                 server.fail_count = 0
-                logger.info(f"服务器 {server_id} 已更新: {ip}:{port}")
+                logger.info(f"服务器 {existing_server} 已更新: {ip}:{port}")
+                server_id = existing_server
             else:
-                # 添加新服务器
+                # 添加新服务器，自动分配ID
+                if not server_id:
+                    server_id = self.generate_server_id()
+                elif server_id in self.servers:
+                    # 如果指定的ID已存在，自动生成新的
+                    server_id = self.generate_server_id()
+                
                 server = BackendServer(server_id, ip, port)
                 self.servers[server_id] = server
                 logger.info(f"服务器 {server_id} 已添加: {ip}:{port}")
@@ -123,10 +147,10 @@ class BackendManager:
             if len(self.servers) == 1 and not self.running:
                 self.start_health_check()
             
-            return True
+            return True, server_id
         except Exception as e:
             logger.error(f"添加/更新服务器失败: {e}")
-            return False
+            return False, ""
     
     def remove_server(self, server_id: str) -> bool:
         """删除GPU服务器"""

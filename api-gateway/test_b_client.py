@@ -117,7 +117,7 @@ def main():
                        help='GPU服务器IP地址')
     parser.add_argument('--port', type=int, default=8000,
                        help='GPU服务器端口')
-    parser.add_argument('--secret', default='default-secret-2024',
+    parser.add_argument('--secret', default='gpu-server-register-to-api-gateway-2024',
                        help='预设密码')
     
     args = parser.parse_args()

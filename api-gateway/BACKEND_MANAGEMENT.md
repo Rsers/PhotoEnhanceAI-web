@@ -45,7 +45,7 @@ GPU服务器 (GPU服务器)
 ### 设置预设密码
 
 ```bash
-export WEBHOOK_SECRET="your-secret-password-2024"
+export WEBHOOK_SECRET="gpu-server-register-to-api-gateway-2024"
 ```
 
 ### 配置文件
@@ -79,7 +79,7 @@ Content-Type: application/json
     "server_id": "B1",
     "ip": "192.168.1.100",
     "port": 8000,
-    "secret": "your-secret-password-2024"
+    "secret": "gpu-server-register-to-api-gateway-2024"
 }
 ```
 
@@ -102,14 +102,14 @@ Content-Type: application/json
 
 {
     "server_id": "B1",
-    "secret": "your-secret-password-2024"
+    "secret": "gpu-server-register-to-api-gateway-2024"
 }
 ```
 
 ### 3. 查询服务器列表
 
 ```http
-GET /webhook/servers?secret=your-secret-password-2024
+GET /webhook/servers?secret=gpu-server-register-to-api-gateway-2024
 ```
 
 响应：
@@ -136,7 +136,7 @@ python test_b_client.py register \
   --server-id B1 \
   --ip 192.168.1.100 \
   --port 8000 \
-  --secret your-secret-password-2024
+  --secret gpu-server-register-to-api-gateway-2024
 ```
 
 ### 注销服务器
@@ -145,7 +145,7 @@ python test_b_client.py register \
 python test_b_client.py unregister \
   --gateway https://www.gongjuxiang.work \
   --server-id B1 \
-  --secret your-secret-password-2024
+  --secret gpu-server-register-to-api-gateway-2024
 ```
 
 ### 查看服务器列表
@@ -153,7 +153,7 @@ python test_b_client.py unregister \
 ```bash
 python test_b_client.py list \
   --gateway https://www.gongjuxiang.work \
-  --secret your-secret-password-2024
+  --secret gpu-server-register-to-api-gateway-2024
 ```
 
 ## 部署说明
@@ -194,7 +194,7 @@ else:
 ### 3. 设置密码
 
 ```bash
-export WEBHOOK_SECRET="your-secret-password-2024"
+export WEBHOOK_SECRET="gpu-server-register-to-api-gateway-2024"
 ```
 
 ### 4. 重启服务
@@ -216,7 +216,7 @@ def register_to_gateway():
         "server_id": "B1",
         "ip": "your-server-ip",
         "port": 8000,
-        "secret": "your-secret-password-2024"
+        "secret": "gpu-server-register-to-api-gateway-2024"
     }
     response = requests.post(url, json=data)
     return response.json()

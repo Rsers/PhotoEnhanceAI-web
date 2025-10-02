@@ -54,20 +54,20 @@ python3 test_b_client.py register \
   --server-id B1 \
   --ip 192.168.1.100 \
   --port 8000 \
-  --secret your-secret-password-2024
+  --secret gpu-server-register-to-api-gateway-2024
 ```
 
 ### 查看GPU服务器状态
 ```bash
 python3 test_b_client.py list \
-  --secret your-secret-password-2024
+  --secret gpu-server-register-to-api-gateway-2024
 ```
 
 ### 注销GPU服务器
 ```bash
 python3 test_b_client.py unregister \
   --server-id B1 \
-  --secret your-secret-password-2024
+  --secret gpu-server-register-to-api-gateway-2024
 ```
 
 ## ✅ 验证清单
