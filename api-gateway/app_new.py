@@ -36,6 +36,7 @@ CORS(app)  # 允许跨域请求
 register_webhook_routes(app)
 
 # 从配置文件获取后端API服务器配置
+BACKEND_API_BASE = config.get_backend_url()
 BACKEND_TIMEOUT = config.get_timeout()
 
 # 支持的API端点
@@ -72,13 +73,14 @@ def enhance_image():
         if 'quality_level' in request.form:
             data['quality_level'] = request.form['quality_level']
         
-        # 使用config.get_backend_url()自动处理负载均衡
-        backend_url = config.get_backend_url()
-        if not backend_url:
-            logger.error("没有可用的后端服务器")
-            return jsonify({'error': '服务暂时不可用，请稍后重试'}), 503
-        
-        logger.info(f"使用后端地址: {backend_url}")
+        # 使用负载均衡选择服务器
+        selected_server = backend_manager.get_next_server()
+        if selected_server:
+            backend_url = selected_server.url
+            logger.info(f"使用服务器: {selected_server.server_id} ({selected_server.ip})")
+        else:
+            backend_url = BACKEND_API_BASE
+            logger.warning("没有可用的B服务器，使用默认配置")
         
         # 转发请求到后端
         full_url = urljoin(backend_url, '/api/v1/enhance')
@@ -112,13 +114,14 @@ def get_task_status(task_id):
     try:
         logger.info(f"查询任务状态: {task_id}")
         
-        # 使用config.get_backend_url()自动处理负载均衡
-        backend_url = config.get_backend_url()
-        if not backend_url:
-            logger.error("没有可用的后端服务器")
-            return jsonify({'error': '服务暂时不可用，请稍后重试'}), 503
-        
-        logger.info(f"使用后端地址: {backend_url}")
+        # 使用负载均衡选择服务器
+        selected_server = backend_manager.get_next_server()
+        if selected_server:
+            backend_url = selected_server.url
+            logger.info(f"使用服务器: {selected_server.server_id} ({selected_server.ip})")
+        else:
+            backend_url = BACKEND_API_BASE
+            logger.warning("没有可用的B服务器，使用默认配置")
         
         # 转发请求到后端
         full_url = urljoin(backend_url, f'/api/v1/status/{task_id}')
@@ -147,13 +150,14 @@ def download_result(task_id):
     try:
         logger.info(f"下载任务结果: {task_id}")
         
-        # 使用config.get_backend_url()自动处理负载均衡
-        backend_url = config.get_backend_url()
-        if not backend_url:
-            logger.error("没有可用的后端服务器")
-            return jsonify({'error': '服务暂时不可用，请稍后重试'}), 503
-        
-        logger.info(f"使用后端地址: {backend_url}")
+        # 使用负载均衡选择服务器
+        selected_server = backend_manager.get_next_server()
+        if selected_server:
+            backend_url = selected_server.url
+            logger.info(f"使用服务器: {selected_server.server_id} ({selected_server.ip})")
+        else:
+            backend_url = BACKEND_API_BASE
+            logger.warning("没有可用的B服务器，使用默认配置")
         
         # 转发请求到后端
         full_url = urljoin(backend_url, f'/api/v1/download/{task_id}')
@@ -189,34 +193,21 @@ def health_check():
     """
     try:
         # 检查后端服务是否可用
-        backend_url = config.get_backend_url()
-        if backend_url:
-            full_url = urljoin(backend_url, '/health')
-            response = requests.get(full_url, timeout=5)
-            
-            return jsonify({
-                'status': 'healthy',
-                'backend_status': 'connected',
-                'backend_url': backend_url,
-                'backend_response': response.status_code,
-                'timestamp': time.time()
-            }), 200
-        else:
-            return jsonify({
-                'status': 'healthy',
-                'backend_status': 'no_servers',
-                'backend_url': None,
-                'message': '没有可用的后端服务器',
-                'gateway_status': 'running',
-                'timestamp': time.time()
-            }), 200
+        backend_url = urljoin(BACKEND_API_BASE, '/health')
+        response = requests.get(backend_url, timeout=5)
+        
+        return jsonify({
+            'status': 'healthy',
+            'backend_status': 'connected',
+            'backend_response': response.status_code,
+            'timestamp': time.time()
+        }), 200
         
     except Exception as e:
         # 即使后端不可用，网关本身仍然健康
         return jsonify({
             'status': 'healthy',
             'backend_status': 'disconnected',
-            'backend_url': config.get_backend_url(),
             'backend_error': str(e),
             'gateway_status': 'running',
             'timestamp': time.time()
@@ -254,7 +245,9 @@ def api_info():
                 'servers': '/webhook/servers'
             }
         },
-        'config_info': config.get_config_info()
+        'backend': config.get_backend_url(),
+        'config_info': config.get_config_info(),
+        'backend_servers': backend_manager.get_stats()
     })
 
 @app.route('/api/v1/config', methods=['GET'])
@@ -267,7 +260,7 @@ def get_config():
 @app.route('/api/v1/config/backend', methods=['POST'])
 def update_backend_config():
     """
-    更新默认后端服务地址接口
+    更新后端服务地址接口
     """
     try:
         data = request.get_json()
@@ -278,8 +271,12 @@ def update_backend_config():
         success = config.update_backend_url(new_url)
         
         if success:
+            # 重新加载配置
+            global BACKEND_API_BASE
+            BACKEND_API_BASE = config.get_backend_url()
+            
             return jsonify({
-                'message': '默认后端服务地址更新成功',
+                'message': '后端服务地址更新成功',
                 'new_backend_url': new_url,
                 'timestamp': time.time()
             }), 200
@@ -288,56 +285,6 @@ def update_backend_config():
             
     except Exception as e:
         logger.error(f"更新后端配置时出错: {str(e)}")
-        return jsonify({'error': '服务器内部错误'}), 500
-
-@app.route('/api/v1/config/multi-backend', methods=['POST'])
-def update_multi_backend_config():
-    """
-    更新多B服务器配置接口
-    """
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': '请求数据为空'}), 400
-        
-        success = True
-        messages = []
-        
-        # 启用/禁用多B服务器模式
-        if 'enabled' in data:
-            enabled = bool(data['enabled'])
-            if config.enable_multi_backend(enabled):
-                status = "启用" if enabled else "禁用"
-                messages.append(f"多B服务器模式已{status}")
-            else:
-                success = False
-                messages.append("设置多B服务器模式失败")
-        
-        # 设置回退模式
-        if 'fallback_to_default' in data:
-            fallback = bool(data['fallback_to_default'])
-            if config.set_fallback_to_default(fallback):
-                status = "启用" if fallback else "禁用"
-                messages.append(f"回退到默认配置已{status}")
-            else:
-                success = False
-                messages.append("设置回退模式失败")
-        
-        if success:
-            return jsonify({
-                'message': '配置更新成功',
-                'details': messages,
-                'config': config.get_config_info(),
-                'timestamp': time.time()
-            }), 200
-        else:
-            return jsonify({
-                'error': '部分配置更新失败',
-                'details': messages
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"更新多B服务器配置时出错: {str(e)}")
         return jsonify({'error': '服务器内部错误'}), 500
 
 # ==================== 微信认证相关API ====================
@@ -619,7 +566,7 @@ def internal_error(error):
 
 if __name__ == '__main__':
     logger.info("启动API网关服务...")
-    logger.info(f"多B服务器模式: {'启用' if config.is_multi_backend_enabled() else '禁用'}")
+    logger.info(f"后端API地址: {BACKEND_API_BASE}")
     logger.info("使用HTTPS协议，端口443")
     
     # 配置SSL证书路径
