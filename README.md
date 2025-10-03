@@ -43,6 +43,7 @@ npm run dev
 - **[部署指南](docs/deployment-guide.md)** - 完整的部署和配置说明
 - **[API接口文档](docs/api-reference.md)** - 所有API接口的详细说明
 - **[GPU服务器管理](docs/gpu-server-management.md)** - 多GPU服务器管理系统
+- **[腾讯云HAI成本优化方案](docs/腾讯云HAI成本优化与用户体验平衡方案.md)** - 腾讯云HAI部署和成本优化策略
 - **[故障排除](docs/troubleshooting.md)** - 常见问题和解决方案
 - **[开发计划](docs/development-roadmap.md)** - 已完成功能和未来规划
 

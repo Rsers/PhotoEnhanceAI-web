@@ -18,7 +18,7 @@ sudo cp /etc/nginx/sites-enabled/gongjuxiang.work /etc/nginx/sites-enabled/gongj
 
 # 应用新配置
 echo "📋 应用统一配置..."
-sudo cp /home/ubuntu/gongjuxiang.work.unified /etc/nginx/sites-enabled/gongjuxiang.work
+sudo cp /home/ubuntu/PhotoEnhanceAI-web/gongjuxiang.work.unified /etc/nginx/sites-enabled/gongjuxiang.work
 
 # 测试Nginx配置
 echo ""
